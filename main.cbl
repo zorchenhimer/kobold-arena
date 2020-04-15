@@ -1,0 +1,43 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. RPG.
+
+       ENVIRONMENT DIVISION.
+       CONFIGURATION SECTION.
+       SOURCE-COMPUTER. IBM-PC.
+       OBJECT-COMPUTER. IBM-PC.
+
+       DATA DIVISION.
+       WORKING-STORAGE SECTION.
+
+       77 ONE pic 9 value 1.
+
+       01 INPUT-LINE PIC X(100).
+       01 NUM PIC 9(5).
+
+       01 THE-PLAYER.
+           05 PL-HEALTH    PIC 9(3) VALUE 100.
+      *    Damage points?
+           05 PL-ATTACK    PIC 9(2) VALUE 0.
+           05 PL-DEFENSE   PIC 9(2) VALUE 0.
+
+       01 MONSTERS OCCURS 100 TIMES.
+
+
+       PROCEDURE DIVISION.
+
+       MAIN.
+
+           PERFORM UNTIL ONE EQUAL ZERO
+               DISPLAY "ENTER SOMETHING: " ACCEPT INPUT-LINE
+               MOVE FUNCTION UPPER-CASE(INPUT-LINE) TO INPUT-LINE
+               DISPLAY "YOU ENTERED: " INPUT-LINE
+
+               EVALUATE INPUT-LINE
+                   WHEN "EXIT" GO TO THE-END
+
+               END-EVALUATE
+           END-PERFORM.
+
+       THE-END.
+           DISPLAY "GOODBYE"
+           STOP RUN.
