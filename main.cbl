@@ -36,6 +36,18 @@
            05 FILLER       PIC X(5) VALUE " DEF ".
            05 DM-DEFENSE   PIC 9(2) VALUE 0.
 
+       01 WS-CURRENT-DATE-DATA.
+           05 WS-CURRENT-DATE.
+               10 WS-CURRENT-YEAR  PIC 9(4).
+               10 WS-CURRENT-MONTH PIC 9(2).
+               10 WS-CURRENT-DAY   PIC 9(2).
+           05 WS-CURRENT-TIME.
+               10 WS-CURRENT-HOURS         PIC 9(2).
+               10 WS-CURRENT-MINUTE        PIC 9(2).
+               10 WS-CURRENT-SECOND        PIC 9(2).
+               10 WS-CURRENT-MILLISECONDS  PIC 9(2).
+           05 WS-DIFF-FROM-GMT     PIC S9(4).
+
        PROCEDURE DIVISION.
 
        MAIN.
@@ -78,7 +90,9 @@
        GENERATE-MONSTER.
            MOVE 100 TO MON-HEALTH(MONSTER-ID)
 
-           MOVE FUNCTION RANDOM TO TMP-NUM
+           MOVE FUNCTION CURRENT-DATE TO WS-CURRENT-DATE-DATA
+
+           MOVE FUNCTION RANDOM(WS-CURRENT-MILLISECONDS) TO TMP-NUM
            MULTIPLY 100 BY TMP-NUM
            MOVE TMP-NUM TO MON-ATTACK(MONSTER-ID)
 
