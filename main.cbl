@@ -15,6 +15,7 @@
       * Current monster ID in MONSTERS
        01 MONSTER-ID PIC 9(5) VALUE 1.
        01 TMP-NUM PIC s99v99.
+       01 DO-MONSTER-ATTACK PIC 9 VALUE 0.
 
        01 THE-PLAYER.
            05 PL-HEALTH    PIC S9(3) VALUE 100.
@@ -51,15 +52,18 @@
        PROCEDURE DIVISION.
 
        MAIN.
-           PERFORM UNTIL PL-ATTACK > 20 AND PL-ATTACK < 80
-               DISPLAY "ENTER ATTACK"
-               ACCEPT PL-ATTACK
-           END-PERFORM
+      *     PERFORM UNTIL PL-ATTACK > 20 AND PL-ATTACK < 80
+      *         DISPLAY "ENTER ATTACK"
+      *         ACCEPT PL-ATTACK
+      *     END-PERFORM
 
-           PERFORM UNTIL PL-DEFENSE > 20 AND PL-DEFENSE < 80
-               DISPLAY "ENTER DEFENSE"
-               ACCEPT PL-DEFENSE
-           END-PERFORM
+      *     PERFORM UNTIL PL-DEFENSE > 20 AND PL-DEFENSE < 80
+      *         DISPLAY "ENTER DEFENSE"
+      *         ACCEPT PL-DEFENSE
+      *     END-PERFORM
+
+           MOVE 50 TO PL-ATTACK
+           MOVE 50 TO PL-DEFENSE
 
            DISPLAY "ENTERING ARENA"
 
@@ -91,8 +95,8 @@
            MOVE 100 TO MON-HEALTH(MONSTER-ID)
 
            MOVE FUNCTION CURRENT-DATE TO WS-CURRENT-DATE-DATA
-
            MOVE FUNCTION RANDOM(WS-CURRENT-MILLISECONDS) TO TMP-NUM
+
            MULTIPLY 100 BY TMP-NUM
            MOVE TMP-NUM TO MON-ATTACK(MONSTER-ID)
 
@@ -110,34 +114,56 @@
            EXIT.
 
        REPL-LOOP.
-           PERFORM UNTIL PL-HEALTH < ZERO
-               OR MON-HEALTH(MONSTER-ID) < ZERO
+           PERFORM UNTIL PL-HEALTH IS LESS THAN OR EQUAL TO ZERO
+               OR MON-HEALTH(MONSTER-ID) IS LESS THAN OR EQUAL TO ZERO
 
+               MOVE 1 TO DO-MONSTER-ATTACK
+
+      * attack value = player attack - ((monster defense / 100) * player
+      * attack)
                ACCEPT INPUT-LINE
                MOVE FUNCTION UPPER-CASE(INPUT-LINE) TO INPUT-LINE
                EVALUATE INPUT-LINE
                    WHEN "EXIT"
                        GO TO RUN-AWAY
                    WHEN "ATTACK"
-                       SUBTRACT MON-DEFENSE(MONSTER-ID)
+                       DIVIDE MON-DEFENSE(MONSTER-ID) BY 100
+                           GIVING TMP-NUM
+                       MULTIPLY TMP-NUM BY PL-ATTACK GIVING TMP-NUM
+                       display "tmp-num " tmp-num
+                       SUBTRACT TMP-NUM
                            FROM PL-ATTACK
                            GIVING TMP-NUM
+      *                 IF TMP-NUM < 0
+      *                     MOVE 1 TO TMP-NUM
+      *                 END-IF
                        SUBTRACT TMP-NUM
                            FROM MON-HEALTH(MONSTER-ID)
                            GIVING MON-HEALTH(MONSTER-ID)
                        DISPLAY "YOU ATTACKED THE MONSTER FOR "
                            TMP-NUM " DAMAGE"
+                   WHEN "SHOW"
+                       DISPLAY "MONSTER HP: " MON-HEALTH(MONSTER-ID)
+                       MOVE 0 TO DO-MONSTER-ATTACK
                END-EVALUATE
 
-               IF MON-HEALTH(MONSTER-ID) > 0
-                   SUBTRACT PL-DEFENSE
-                       FROM MON-ATTACK(MONSTER-ID)
+               IF DO-MONSTER-ATTACK EQUAL 1
+                   AND MON-HEALTH(MONSTER-ID) > 0
+
+      * attack value = mon attack - ((player defense / 100) * mon
+      * attack)
+
+                   DIVIDE PL-ATTACK BY 100 GIVING TMP-NUM
+                   MULTIPLY TMP-NUM BY MON-ATTACK(MONSTER-ID)
                        GIVING TMP-NUM
-                   DISPLAY "MONSTER ATTACKS FOR " TMP-NUM
-                       " DAMAGE"
+                   SUBTRACT TMP-NUM
+                       FROM PL-DEFENSE
+                       GIVING TMP-NUM
                    SUBTRACT TMP-NUM
                        FROM PL-HEALTH
                        GIVING PL-HEALTH
+                   DISPLAY "MONSTER ATTACKS FOR " TMP-NUM
+                       " DAMAGE"
                END-IF
 
                DISPLAY "PLAYER HEALTH: " PL-HEALTH
