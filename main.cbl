@@ -12,32 +12,125 @@
        77 ONE pic 9 value 1.
 
        01 INPUT-LINE PIC X(100).
-       01 NUM PIC 9(5).
+      * Current monster ID in MONSTERS
+       01 MONSTER-ID PIC 9(5) VALUE 1.
+       01 TMP-NUM PIC s99v99.
 
        01 THE-PLAYER.
-           05 PL-HEALTH    PIC 9(3) VALUE 100.
-      *    Damage points?
+           05 PL-HEALTH    PIC S9(3) VALUE 100.
            05 PL-ATTACK    PIC 9(2) VALUE 0.
            05 PL-DEFENSE   PIC 9(2) VALUE 0.
 
        01 MONSTERS OCCURS 100 TIMES.
+           05 MON-HEALTH   PIC S9(3) VALUE 100.
+           05 MON-ATTACK   PIC 9(2) VALUE 0.
+           05 MON-DEFENSE  PIC 9(2) VALUE 0.
 
+       01 DISP-MONSTER.
+           05 FILLER       PIC X(3) VALUE "ID ".
+           05 DM-ID        PIC 9(5).
+           05 FILLER       PIC X(4) VALUE " HP ".
+           05 DM-HEALTH    PIC 9(3) VALUE 100.
+           05 FILLER       PIC X(5) VALUE " ATT ".
+           05 DM-ATTACK    PIC 9(2) VALUE 0.
+           05 FILLER       PIC X(5) VALUE " DEF ".
+           05 DM-DEFENSE   PIC 9(2) VALUE 0.
 
        PROCEDURE DIVISION.
 
        MAIN.
+           PERFORM UNTIL PL-ATTACK > 20 AND PL-ATTACK < 80
+               DISPLAY "ENTER ATTACK"
+               ACCEPT PL-ATTACK
+           END-PERFORM
 
+           PERFORM UNTIL PL-DEFENSE > 20 AND PL-DEFENSE < 80
+               DISPLAY "ENTER DEFENSE"
+               ACCEPT PL-DEFENSE
+           END-PERFORM
+
+           DISPLAY "ENTERING ARENA"
+
+      * generate a monster with stats
+      * REPL the attacks
+      * when player health is zero, you die and game is over
+      * when monster health is zero, it dies, spawn new monster
            PERFORM UNTIL ONE EQUAL ZERO
-               DISPLAY "ENTER SOMETHING: " ACCEPT INPUT-LINE
-               MOVE FUNCTION UPPER-CASE(INPUT-LINE) TO INPUT-LINE
-               DISPLAY "YOU ENTERED: " INPUT-LINE
+               PERFORM GENERATE-MONSTER
+               PERFORM REPL-LOOP
 
-               EVALUATE INPUT-LINE
-                   WHEN "EXIT" GO TO THE-END
-
-               END-EVALUATE
+               IF PL-HEALTH < 0
+                   DISPLAY "YOU DIED."
+                   GO TO GAME-OVER
+               end-if
+               ADD 1 TO MONSTER-ID
+               display " "
            END-PERFORM.
 
        THE-END.
            DISPLAY "GOODBYE"
            STOP RUN.
+
+       GAME-OVER.
+           DISPLAY "TODO: DISPLAY STATS"
+           STOP RUN.
+
+       GENERATE-MONSTER.
+           MOVE 100 TO MON-HEALTH(MONSTER-ID)
+
+           MOVE FUNCTION RANDOM TO TMP-NUM
+           MULTIPLY 100 BY TMP-NUM
+           MOVE TMP-NUM TO MON-ATTACK(MONSTER-ID)
+
+           MOVE FUNCTION RANDOM TO TMP-NUM
+           MULTIPLY 100 BY TMP-NUM
+           MOVE TMP-NUM TO MON-DEFENSE(MONSTER-ID)
+
+           DISPLAY "A NEW MONSTER APPROACHES"
+           MOVE MONSTER-ID TO DM-ID
+           MOVE MON-HEALTH(MONSTER-ID) TO DM-HEALTH
+           MOVE MON-ATTACK(MONSTER-ID) TO DM-ATTACK
+           MOVE MON-DEFENSE(MONSTER-ID) TO DM-DEFENSE
+           DISPLAY DISP-MONSTER
+
+           EXIT.
+
+       REPL-LOOP.
+           PERFORM UNTIL PL-HEALTH < ZERO
+               OR MON-HEALTH(MONSTER-ID) < ZERO
+
+               ACCEPT INPUT-LINE
+               MOVE FUNCTION UPPER-CASE(INPUT-LINE) TO INPUT-LINE
+               EVALUATE INPUT-LINE
+                   WHEN "EXIT"
+                       GO TO RUN-AWAY
+                   WHEN "ATTACK"
+                       SUBTRACT MON-DEFENSE(MONSTER-ID)
+                           FROM PL-ATTACK
+                           GIVING TMP-NUM
+                       SUBTRACT TMP-NUM
+                           FROM MON-HEALTH(MONSTER-ID)
+                           GIVING MON-HEALTH(MONSTER-ID)
+                       DISPLAY "YOU ATTACKED THE MONSTER FOR "
+                           TMP-NUM " DAMAGE"
+               END-EVALUATE
+
+               IF MON-HEALTH(MONSTER-ID) > 0
+                   SUBTRACT PL-DEFENSE
+                       FROM MON-ATTACK(MONSTER-ID)
+                       GIVING TMP-NUM
+                   DISPLAY "MONSTER ATTACKS FOR " TMP-NUM
+                       " DAMAGE"
+                   SUBTRACT TMP-NUM
+                       FROM PL-HEALTH
+                       GIVING PL-HEALTH
+               END-IF
+
+               DISPLAY "PLAYER HEALTH: " PL-HEALTH
+           END-PERFORM.
+           EXIT.
+
+       RUN-AWAY.
+           DISPLAY "YOU TRIED TO RUN AWAY, BUT YOU TRIPPED AND DIED."
+           EXIT PROGRAM.
+
