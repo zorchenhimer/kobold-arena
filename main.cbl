@@ -128,24 +128,28 @@
 
                MOVE 1 TO DO-MONSTER-ATTACK
 
-      * attack value = player attack - ((monster defense / 100) * player
-      * attack)
                ACCEPT INPUT-LINE
+               DISPLAY " "
                MOVE FUNCTION UPPER-CASE(INPUT-LINE) TO INPUT-LINE
                EVALUATE INPUT-LINE
                    WHEN "EXIT"
                        GO TO RUN-AWAY
                    WHEN "ATTACK"
-                       DIVIDE MON-DEFENSE(MONSTER-ID) BY 100
+      * attack value = player attack - (((100 - monster defense)
+      * / 100) * player attack)
+      *
+      *                100 - monster defense
+                       SUBTRACT MON-DEFENSE(MONSTER-ID) FROM 100
                            GIVING TMP-NUM
+
+      *                (100 - monster defese) / 100
+      *                persentage of player attack to deal
+                       DIVIDE TMP-NUM BY 100
+                           GIVING TMP-NUM
+      *                player attack * persentage = total attack value
                        MULTIPLY TMP-NUM BY PL-ATTACK GIVING TMP-NUM
-                       display "tmp-num " tmp-num
-                       SUBTRACT TMP-NUM
-                           FROM PL-ATTACK
-                           GIVING TMP-NUM
-      *                 IF TMP-NUM < 0
-      *                     MOVE 1 TO TMP-NUM
-      *                 END-IF
+
+      *                health - total attack value
                        SUBTRACT TMP-NUM
                            FROM MON-HEALTH(MONSTER-ID)
                            GIVING MON-HEALTH(MONSTER-ID)
@@ -159,14 +163,9 @@
                IF DO-MONSTER-ATTACK EQUAL 1
                    AND MON-HEALTH(MONSTER-ID) > 0
 
-      * attack value = mon attack - ((player defense / 100) * mon
-      * attack)
-
-                   DIVIDE PL-ATTACK BY 100 GIVING TMP-NUM
+                   SUBTRACT PL-DEFENSE FROM 100 GIVING TMP-NUM
+                   DIVIDE TMP-NUM BY 100 GIVING TMP-NUM
                    MULTIPLY TMP-NUM BY MON-ATTACK(MONSTER-ID)
-                       GIVING TMP-NUM
-                   SUBTRACT TMP-NUM
-                       FROM PL-DEFENSE
                        GIVING TMP-NUM
                    SUBTRACT TMP-NUM
                        FROM PL-HEALTH
