@@ -28,6 +28,9 @@
        01 TMP-DEF  PIC s99v99.
        01 TMP-ATK  PIC s99v99.
        01 TMP-UINT PIC 9(4).
+       01 TMP-DOT  PIC 99.99.
+
+       01 DISPLAY-TEXT PIC X(50) VALUE SPACES.
 
        01 TMP-ATK-TYPE PIC X(5).
                    88 TA-WATER     VALUE "WATER".
@@ -54,6 +57,7 @@
                    88 MT-FIRE      VALUE "FIRE".
                    88 MT-EARTH     VALUE "EARTH".
 
+           05 MON-NAME         PIC X(20).
            05 MON-HEALTH       PIC S9(3)   VALUE 100.
            05 MON-ATTACK       PIC 9(2)    VALUE 0.
            05 MON-SPATTACK     PIC 9(2)    VALUE 0.
@@ -74,7 +78,9 @@
            05 FILLER       PIC X(8) VALUE " SP-DEF ".
            05 DM-SPDEFENSE PIC 9(2) VALUE 0.
            05 FILLER       PIC X(8) VALUE "   TYPE ".
-           05 DM-TYPE      PIC X(5) .
+           05 DM-TYPE      PIC X(5).
+           05 FILLER       PIC X(8) VALUE "   NAME ".
+           05 DM-NAME      PIC X(20).
 
        01 WS-CURRENT-DATE-DATA.
            05 WS-CURRENT-DATE.
@@ -87,6 +93,47 @@
                10 WS-CURRENT-SECOND        PIC 9(2).
                10 WS-CURRENT-MILLISECONDS  PIC 9(2).
            05 WS-DIFF-FROM-GMT     PIC S9(4).
+
+       SCREEN SECTION.
+       01 SCREEN-BATTLE.
+           05 VALUE "MONSTER" BLANK SCREEN LINE 1 COL 2.
+           05 SB-MONSTER-NAME              LINE 1 COL 10
+               PIC X(20)   FROM DM-NAME.
+           05 VALUE "TYPE"                 LINE 2 COL 5.
+           05 SB-MONSTER-TYPE              LINE 2 COL 15
+               PIC X(5)    FROM DM-TYPE.
+           05 VALUE "HEALTH"               LINE 3 COL 5.
+           05 SB-MONSTER-HEALTH            LINE 3 COL 15
+               PIC X(3)    FROM DM-HEALTH.
+
+           05 VALUE "ATK"                  LINE 5 COL 5.
+           05 SB-MONSTER-ATK               LINE 5 COL 15
+               PIC 9(2)    FROM DM-ATTACK.
+           05 VALUE "DEF"                  LINE 6 COL 5.
+           05 SB-MONSTER-DEF               LINE 6 COL 15
+               PIC 9(2)    FROM DM-DEFENSE.
+
+           05 VALUE "SP-ATK"               LINE 7 COL 5.
+           05 SB-MONSTER-SPATK             LINE 7 COL 15
+               PIC 9(2)    FROM DM-SPATTACK.
+           05 VALUE "SP-DEF"               LINE 8 COL 5.
+           05 SB-MONSTER-SPDEF             LINE 8 COL 15
+               PIC 9(2)    FROM DM-SPDEFENSE.
+
+           05 VALUE "PLAYER"               LINE 10 COL 2.
+           05 VALUE "HEALTH"               LINE 11 COL 5.
+           05 SB-PLAYER-HEALTH             LINE 11 COL 15
+               PIC 9(3)    FROM PL-HEALTH.
+           05 VALUE "ACTION"               LINE 14 COL 2.
+           05 SB-INPUT                     LINE 15 COL 5
+               PIC x(10)   USING INPUT-LINE.
+
+
+       01 SCREEN-INFO.
+           05 SI-TEXT    BLANK SCREEN      LINE 3 COL 10
+               PIC X(50) FROM DISPLAY-TEXT.
+           05 SI-INPUT                     LINE 6 COL 2
+               PIC X(1) USING INPUT-LINE.
 
        PROCEDURE DIVISION.
 
@@ -111,7 +158,10 @@
            MOVE 50 TO PL-SPDEFENSE
            MOVE "FIRE" TO PL-TYPE
 
-           DISPLAY "ENTERING ARENA"
+           MOVE "ENTERING THE ARENA" TO DISPLAY-TEXT
+           MOVE SPACES TO INPUT-LINE
+           DISPLAY SCREEN-INFO
+           ACCEPT SCREEN-INFO
 
       * generate a monster with stats
       * REPL the attacks
@@ -122,19 +172,21 @@
                PERFORM REPL-LOOP
 
                IF PL-HEALTH < 0
-                   DISPLAY "YOU DIED."
+                   MOVE "YOU DIED" TO DISPLAY-TEXT
+                   MOVE SPACES TO INPUT-LINE
+                   DISPLAY SCREEN-INFO
+                   ACCEPT SCREEN-INFO
                    GO TO GAME-OVER
                end-if
                ADD 1 TO MONSTER-ID
                display " "
            END-PERFORM.
 
-       THE-END.
-           DISPLAY "GOODBYE"
-           STOP RUN.
-
        GAME-OVER.
-           DISPLAY "TODO: DISPLAY STATS"
+           MOVE "TODO: DISPLAY STATS" TO DISPLAY-TEXT
+           MOVE SPACES TO INPUT-LINE
+           DISPLAY SCREEN-INFO
+           ACCEPT SCREEN-INFO
            STOP RUN.
 
        GENERATE-MONSTER.
@@ -162,15 +214,10 @@
                WHEN 3 MOVE "EARTH" TO MON-TYPE(MONSTER-ID)
            END-EVALUATE
 
-           DISPLAY "A NEW MONSTER APPROACHES"
-           MOVE MONSTER-ID TO DM-ID
-           MOVE MON-HEALTH(MONSTER-ID) TO DM-HEALTH
-           MOVE MON-ATTACK(MONSTER-ID) TO DM-ATTACK
-           MOVE MON-DEFENSE(MONSTER-ID) TO DM-DEFENSE
-           MOVE MON-SPATTACK(MONSTER-ID) TO DM-SPATTACK
-           MOVE MON-SPDEFENSE(MONSTER-ID) TO DM-SPDEFENSE
-           MOVE MON-TYPE(MONSTER-ID) TO DM-TYPE
-           DISPLAY DISP-MONSTER
+           MOVE "A NEW MONSTER APPROACHES" TO DISPLAY-TEXT
+           MOVE SPACES TO INPUT-LINE
+           DISPLAY SCREEN-INFO
+           ACCEPT SCREEN-INFO
 
            EXIT.
 
@@ -191,8 +238,10 @@
                MOVE 1 TO DO-MONSTER-ATTACK
                MOVE "Y" TO IS-INPUT-OK
 
-               ACCEPT INPUT-LINE
-               DISPLAY " "
+               PERFORM FILL-SCREEN-BATTLE
+               DISPLAY SCREEN-BATTLE
+               ACCEPT SCREEN-BATTLE
+
                MOVE FUNCTION UPPER-CASE(INPUT-LINE) TO INPUT-LINE
                EVALUATE TRUE
                    WHEN INPUT-EXIT
@@ -206,19 +255,23 @@
                        SUBTRACT TMP-NUM
                            FROM MON-HEALTH(MONSTER-ID)
                            GIVING MON-HEALTH(MONSTER-ID)
-                       DISPLAY "YOU ATTACKED THE MONSTER FOR "
-                           TMP-NUM " DAMAGE"
+                       MOVE TMP-NUM TO TMP-DOT
+                       STRING "YOU ATTACKED FOR " DELIMITED BY SIZE
+                           TMP-DOT DELIMITED BY SIZE
+                          " DAMAGE" DELIMITED BY SIZE INTO DISPLAY-TEXT
+                       MOVE SPACES TO INPUT-LINE
+                       DISPLAY SCREEN-INFO
+                       ACCEPT SCREEN-INFO
 
-                   WHEN INPUT-SHOW
-                       DISPLAY "MONSTER HP: " MON-HEALTH(MONSTER-ID)
-                       MOVE 0 TO DO-MONSTER-ATTACK
+      *            WHEN INPUT-SHOW
+      *                DISPLAY "MONSTER HP: " MON-HEALTH(MONSTER-ID)
+      *                MOVE 0 TO DO-MONSTER-ATTACK
 
                    WHEN INPUT-SPFIRE OR INPUT-SPWATER OR INPUT-SPEARTH
                        MOVE MON-SPDEFENSE(MONSTER-ID) TO TMP-DEF
                        MOVE PL-SPATTACK TO TMP-ATK
                        PERFORM CALCULATE-DAMAGE
 
-                       DISPLAY "PRE SP TMP-NUM " TMP-NUM
       *                Standard dmg
                        MOVE SPACES TO TMP-ATK-TYPE
                        EVALUATE TRUE
@@ -234,16 +287,20 @@
                        PERFORM CALCULATE-SP-DAMAGE
 
                        SUBTRACT TMP-NUM FROM MON-HEALTH(MONSTER-ID)
-                       DISPLAY "YOU ATTACKED THE MONSTER FOR "
-                           TMP-NUM " DAMAGE"
+                       MOVE TMP-NUM TO TMP-DOT
+                       STRING "YOU ATTACKED FOR " DELIMITED BY SIZE
+                           TMP-DOT DELIMITED BY SIZE
+                          " DAMAGE" DELIMITED BY SIZE INTO DISPLAY-TEXT
+                       MOVE SPACES TO INPUT-LINE
+                       DISPLAY SCREEN-INFO
+                       ACCEPT SCREEN-INFO
 
                    WHEN OTHER
-                       DISPLAY "TRY AGAIN"
                        MOVE "N" TO IS-INPUT-OK
                END-EVALUATE
 
-               IF DO-MONSTER-ATTACK EQUAL 1
-                   AND MON-HEALTH(MONSTER-ID) > 0
+               IF DO-MONSTER-ATTACK EQUAL ONE
+                   AND MON-HEALTH(MONSTER-ID) IS GREATER THAN ZERO
                    AND INPUT-GOOD
 
                    MOVE PL-DEFENSE TO TMP-DEF
@@ -253,11 +310,14 @@
                    SUBTRACT TMP-NUM
                        FROM PL-HEALTH
                        GIVING PL-HEALTH
-                   DISPLAY "MONSTER ATTACKS FOR " TMP-NUM
-                       " DAMAGE"
+                   MOVE TMP-NUM TO TMP-DOT
+                   STRING "MONSTER ATTACKS FOR " DELIMITED BY SIZE
+                       TMP-DOT DELIMITED BY SIZE
+                      " DAMAGE" DELIMITED BY SIZE INTO DISPLAY-TEXT
+                  MOVE SPACES TO INPUT-LINE
+                  DISPLAY SCREEN-INFO
+                  ACCEPT SCREEN-INFO
                END-IF
-
-               DISPLAY "PLAYER HEALTH: " PL-HEALTH
            END-PERFORM.
            EXIT.
 
@@ -316,7 +376,24 @@
            END-EVALUATE.
            EXIT.
 
+       FILL-SCREEN-BATTLE.
+           MOVE "A MONSTER" TO DM-NAME
+           MOVE MON-TYPE(MONSTER-ID)       TO DM-TYPE
+           MOVE MON-TYPE(MONSTER-ID)       TO DM-TYPE
+           MOVE MON-HEALTH(MONSTER-ID)     TO DM-HEALTH
+           MOVE MON-ATTACK(MONSTER-ID)     TO DM-ATTACK
+           MOVE MON-DEFENSE(MONSTER-ID)    TO DM-DEFENSE
+           MOVE MON-SPATTACK(MONSTER-ID)   TO DM-SPATTACK
+           MOVE MON-SPDEFENSE(MONSTER-ID)  TO DM-SPDEFENSE
+
+           MOVE SPACES TO INPUT-LINE.
+           EXIT.
+
        RUN-AWAY.
-           DISPLAY "YOU TRIED TO RUN AWAY, BUT YOU TRIPPED AND DIED."
-           EXIT PROGRAM.
+           MOVE "YOU TRIED TO RUN AWAY, BUT YOU TRIPPED AND DIED."
+               TO DISPLAY-TEXT.
+           move spaces to input-line
+           DISPLAY SCREEN-INFO.
+           ACCEPT SCREEN-INFO.
+           STOP RUN.
 
