@@ -1,5 +1,21 @@
        IDENTIFICATION DIVISION.
-       PROGRAM-ID. RPG.
+       PROGRAM-ID. KOBOLD-ARENA.
+
+      * TODO: Get player stats from input.
+      * TODO: Write monster history to file instead of keeping all of it
+      *       in memory.
+      * TODO: Implement SP attacks from the monster.
+      * TODO: Implement a "defend" action for both player and monster
+      *       (damage halved?).
+      * TODO: Heal player by a percentage of their total health between
+      *       rounds.
+      * TODO: Add some variety to run-away messages (RNG from a list?).
+      * TODO: Add monster types that have the same base stats. Modify
+      *       these stats based on RNG.  Modify attack ratios based on
+      *       type?
+      * TODO: Display end-of-game stats: Monsters fought/killed, total
+      *       damage dealt/received, SP attacks used, etc.
+      * TODO: Record the above stats.
 
        ENVIRONMENT DIVISION.
        CONFIGURATION SECTION.
@@ -151,7 +167,6 @@
       *         ACCEPT PL-DEFENSE
       *     END-PERFORM
 
-      *    TODO: get these from the user
            MOVE 50 TO PL-ATTACK
            MOVE 50 TO PL-DEFENSE
            MOVE 50 TO PL-SPATTACK
