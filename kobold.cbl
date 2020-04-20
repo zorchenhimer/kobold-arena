@@ -8,9 +8,6 @@
       * TODO: Add monster types that have the same base stats. Modify
       *       these stats based on RNG.  Modify attack ratios based on
       *       type?
-      * TODO: Display end-of-game stats: Monsters fought/killed, total
-      *       damage dealt/received, SP attacks used, etc.
-      * TODO: Record the above stats.
 
        ENVIRONMENT DIVISION.
        CONFIGURATION SECTION.
@@ -140,6 +137,13 @@
                10 WS-CURRENT-MILLISECONDS  PIC 9(2).
            05 WS-DIFF-FROM-GMT     PIC S9(4).
 
+       01 GAME-STATS.
+           05 ST-MONSTERS PIC 9(4).
+           05 ST-DMG-DEALT PIC 9(6).
+           05 ST-DMG-RECEIVED PIC 9(6).
+           05 ST-AT-USED PIC 9(4).
+           05 ST-SP-USED PIC 9(4).
+
        SCREEN SECTION.
        01 SCREEN-BATTLE.
            05 VALUE "MONSTER" BLANK SCREEN LINE 1 COL 2.
@@ -184,6 +188,32 @@
            05 SI-INPUT                     LINE 6 COL 2
                PIC X(2) USING INPUT-LINE.
 
+       01 SCREEN-STATS.
+           05 VALUE "MONSTERS FOUGHT" BLANK SCREEN
+                                           LINE 2 COL 5.
+           05 SS-MONSTERS                  LINE 2 COL 25
+               FROM ST-MONSTERS.
+
+           05 VALUE "DAMAGE DEALT"         LINE 3 COL 5.
+           05 SS-DMG-DEALT                 LINE 3 COL 25
+               FROM ST-DMG-DEALT.
+
+           05 VALUE "DAMAGE RECEIVED"      LINE 4 COL 5.
+           05 SS-DMG-RECEIVED              LINE 4 COL 25
+               FROM ST-DMG-RECEIVED.
+
+           05 VALUE "ATTACKS USED"         LINE 5 COL 5.
+           05 SS-AT-USED                   LINE 5 COL 25
+               FROM ST-AT-USED.
+
+           05 VALUE "SP ATTACKS USED"      LINE 6 COL 5.
+           05 SS-SP-USED                   LINE 6 COL 25
+               FROM ST-SP-USED.
+
+           05 SI-INPUT                     LINE 8 COL 2
+               PIC X(2) USING INPUT-LINE.
+
+
        PROCEDURE DIVISION.
 
            MOVE FUNCTION CURRENT-DATE TO WS-CURRENT-DATE-DATA
@@ -227,8 +257,9 @@
        GAME-OVER.
            CLOSE MONSTERS.
 
-           MOVE "TODO: DISPLAY STATS" TO DISPLAY-TEXT
-           PERFORM DISPLAY-INFO-SCREEN
+           MOVE SPACES TO INPUT-LINE
+           DISPLAY SCREEN-STATS
+           ACCEPT SCREEN-STATS
            STOP RUN.
 
        GENERATE-MONSTER.
@@ -256,6 +287,8 @@
 
            PERFORM GEN-RNG-NUMBER
            MOVE TMP-NUM TO MON-SP-RATIO
+
+           ADD ONE TO ST-MONSTERS
 
            MOVE FUNCTION RANDOM TO TMP-NUM
            MULTIPLY 3 BY TMP-NUM
@@ -329,20 +362,24 @@
                        GO TO RUN-AWAY
 
                    WHEN INPUT-ATTACK
+                       ADD ONE TO ST-AT-USED
                        MOVE MON-DEFENSE TO TMP-DEF
                        MOVE PL-ATTACK TO TMP-ATK
                        PERFORM CALCULATE-DAMAGE
+
       *                health - total attack value
                        SUBTRACT TMP-NUM
                            FROM MON-HEALTH
                            GIVING MON-HEALTH
-                       MOVE TMP-NUM TO TMP-DOT
                        IF MON-DEFEND IS EQUAL TO ONE
                            MULTIPLY DEFEND-RATIO BY TMP-NUM
-                           GIVING TMP-DOT
+                           GIVING TMP-NUM
                            MOVE "MONSTER BRACED FOR ATTACK"
                            TO DISPLAY-TEXT
                            PERFORM DISPLAY-INFO-SCREEN
+
+                           ADD TMP-NUM TO ST-DMG-DEALT
+                           MOVE TMP-NUM TO TMP-DOT
 
                            STRING
                                "MONSTER DEFENDED AND YOU ATTACKED FOR "
@@ -351,6 +388,9 @@
                                " DAMAGE" DELIMITED BY SIZE
                                INTO DISPLAY-TEXT
                        ELSE
+                           ADD TMP-NUM TO ST-DMG-DEALT
+                           MOVE TMP-NUM TO TMP-DOT
+
                            STRING
                                "YOU ATTACKED FOR " DELIMITED BY SIZE
                                TMP-DOT DELIMITED BY SIZE
@@ -360,6 +400,8 @@
                        PERFORM DISPLAY-INFO-SCREEN
 
                    WHEN INPUT-SPFIRE OR INPUT-SPWATER OR INPUT-SPEARTH
+                       ADD ONE TO ST-SP-USED
+
                        MOVE MON-SPDEFENSE TO TMP-DEF
                        MOVE PL-SPATTACK TO TMP-ATK
                        PERFORM CALCULATE-DAMAGE
@@ -380,10 +422,13 @@
 
                        IF MON-DEFEND IS EQUAL TO ONE
                            MULTIPLY DEFEND-RATIO BY TMP-NUM
-                           GIVING TMP-DOT
+                           GIVING TMP-NUM
                            MOVE "MONSTER BRACED FOR ATTACK"
                            TO DISPLAY-TEXT
                            PERFORM DISPLAY-INFO-SCREEN
+
+                           ADD TMP-NUM TO ST-DMG-DEALT
+                           MOVE TMP-NUM TO TMP-DOT
 
                            STRING
                                "MONSTER DEFENDED AND YOU ATTACKED FOR "
@@ -392,6 +437,9 @@
                                " DAMAGE" DELIMITED BY SIZE
                                INTO DISPLAY-TEXT
                        ELSE
+                           ADD TMP-NUM TO ST-DMG-DEALT
+                           MOVE TMP-NUM TO TMP-DOT
+
                            STRING
                                "YOU ATTACKED FOR " DELIMITED BY SIZE
                                TMP-DOT DELIMITED BY SIZE
@@ -400,7 +448,6 @@
                        END-IF
 
                        SUBTRACT TMP-NUM FROM MON-HEALTH
-                       MOVE TMP-NUM TO TMP-DOT
                        PERFORM DISPLAY-INFO-SCREEN
 
                    WHEN INPUT-DEFEND
@@ -424,6 +471,9 @@
                            MOVE PL-DEFENSE TO TMP-DEF
                            MOVE MON-ATTACK TO TMP-ATK
                            PERFORM CALCULATE-DAMAGE
+
+                           ADD TMP-NUM TO ST-DMG-RECEIVED
+                           MOVE TMP-NUM TO TMP-DOT
                            STRING
                                "MONSTER ATTACKS FOR " DELIMITED BY SIZE
                                TMP-DOT DELIMITED BY SIZE
@@ -449,6 +499,10 @@
                            IF PL-DEFEND IS EQUAL ONE
                                MULTIPLY DEFEND-RATIO BY TMP-NUM
                            END-IF
+
+                           ADD TMP-NUM TO ST-DMG-RECEIVED
+                           MOVE TMP-NUM TO TMP-DOT
+
                            STRING
                                "MONSTER ATTACKED WITH "
                                DELIMITED BY SIZE
