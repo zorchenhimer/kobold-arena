@@ -2,8 +2,6 @@
        PROGRAM-ID. KOBOLD-ARENA.
 
       * TODO: Get player stats from input.
-      * TODO: Write monster history to file instead of keeping all of it
-      *       in memory.
       * TODO: Implement SP attacks from the monster.
       * TODO: Implement a "defend" action for both player and monster
       *       (damage halved?).
@@ -22,10 +20,35 @@
        SOURCE-COMPUTER. IBM-PC.
        OBJECT-COMPUTER. IBM-PC.
 
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+           SELECT MONSTERS ASSIGN TO 'MONSTERS.INC'
+               ORGANIZATION IS LINE SEQUENTIAL
+               ACCESS IS SEQUENTIAL
+               FILE STATUS IS FS.
+
        DATA DIVISION.
+
+       FILE SECTION.
+       FD MONSTERS.
+       01 MONSTER-FILE.
+           05 FILLER-01    PIC X(6)    VALUE "TYPE: ".
+           05 MF-TYPE      PIC X(5).
+           05 FILLER-02    PIC X(7)    VALUE " NAME: ".
+           05 MF-NAME      PIC X(20).
+           05 FILLER-03    PIC X(6)    VALUE " ATK: ".
+           05 MF-ATTACK    PIC 9(2)    VALUE 0.
+           05 FILLER-04    PIC X(9)    VALUE " SP-ATK: ".
+           05 MF-SPATTACK  PIC 9(2)    VALUE 0.
+           05 FILLER-05    PIC X(6)    VALUE " DEF: ".
+           05 MF-DEFENSE   PIC 9(2)    VALUE 0.
+           05 FILLER-06    PIC X(9)    VALUE " SP-DEF: ".
+           05 MF-SPDEFENSE PIC 9(2)    VALUE 0.
+
        WORKING-STORAGE SECTION.
 
-       77 ONE pic 9 value 1.
+       77 FS PIC X(10).
+       77 ONE PIC 9 VALUE 1.
        77 IS-INPUT-OK PIC 9.
                    88 INPUT-GOOD VALUE "Y".
                    88 INPUT-BAD  VALUE "N".
@@ -39,7 +62,6 @@
                    88 INPUT-SPEARTH    VALUE "SPEARTH".
 
       * Current monster ID in MONSTERS
-       01 MONSTER-ID PIC 9(5) VALUE 1.
        01 TMP-NUM  PIC s99v99.
        01 TMP-DEF  PIC s99v99.
        01 TMP-ATK  PIC s99v99.
@@ -67,7 +89,7 @@
            05 PL-SPDEFENSE PIC 9(2)    VALUE 0.
            05 PL-TYPE      PIC X(5).
 
-       01 MONSTERS OCCURS 100 TIMES.
+       01 CUR-MONSTER.
            05 MON-TYPE     PIC X(5).
                    88 MT-WATER     VALUE "WATER".
                    88 MT-FIRE      VALUE "FIRE".
@@ -149,11 +171,9 @@
            05 SI-TEXT    BLANK SCREEN      LINE 3 COL 10
                PIC X(50) FROM DISPLAY-TEXT.
            05 SI-INPUT                     LINE 6 COL 2
-               PIC X(1) USING INPUT-LINE.
+               PIC X(2) USING INPUT-LINE.
 
        PROCEDURE DIVISION.
-
-       MAIN.
 
            MOVE FUNCTION CURRENT-DATE TO WS-CURRENT-DATE-DATA
            MOVE FUNCTION RANDOM(WS-CURRENT-MILLISECONDS) TO TMP-NUM
@@ -172,6 +192,8 @@
            MOVE 50 TO PL-SPATTACK
            MOVE 50 TO PL-SPDEFENSE
            MOVE "FIRE" TO PL-TYPE
+
+           OPEN OUTPUT MONSTERS.
 
            MOVE "ENTERING THE ARENA" TO DISPLAY-TEXT
            MOVE SPACES TO INPUT-LINE
@@ -193,11 +215,11 @@
                    ACCEPT SCREEN-INFO
                    GO TO GAME-OVER
                end-if
-               ADD 1 TO MONSTER-ID
-               display " "
            END-PERFORM.
 
        GAME-OVER.
+           CLOSE MONSTERS.
+
            MOVE "TODO: DISPLAY STATS" TO DISPLAY-TEXT
            MOVE SPACES TO INPUT-LINE
            DISPLAY SCREEN-INFO
@@ -205,36 +227,55 @@
            STOP RUN.
 
        GENERATE-MONSTER.
-           MOVE 100 TO MON-HEALTH(MONSTER-ID)
+           MOVE 100 TO MON-HEALTH
 
            PERFORM GEN-RNG-NUMBER
-           MOVE TMP-NUM TO MON-ATTACK(MONSTER-ID)
+           MOVE TMP-NUM TO MON-ATTACK
 
            PERFORM GEN-RNG-NUMBER
-           MOVE TMP-NUM TO MON-DEFENSE(MONSTER-ID)
+           MOVE TMP-NUM TO MON-DEFENSE
 
            PERFORM GEN-RNG-NUMBER
-           MOVE TMP-NUM TO MON-SPATTACK(MONSTER-ID)
+           MOVE TMP-NUM TO MON-SPATTACK
 
            PERFORM GEN-RNG-NUMBER
-           MOVE TMP-NUM TO MON-SPDEFENSE(MONSTER-ID)
+           MOVE TMP-NUM TO MON-SPDEFENSE
 
            MOVE FUNCTION RANDOM TO TMP-NUM
            MULTIPLY 3 BY TMP-NUM
            ADD 1 TO TMP-NUM
            MOVE TMP-NUM TO TMP-UINT
            EVALUATE TMP-UINT
-               WHEN 1 MOVE "WATER" TO MON-TYPE(MONSTER-ID)
-               WHEN 2 MOVE "FIRE"  TO MON-TYPE(MONSTER-ID)
-               WHEN 3 MOVE "EARTH" TO MON-TYPE(MONSTER-ID)
+               WHEN 1 MOVE "WATER" TO MON-TYPE
+               WHEN 2 MOVE "FIRE"  TO MON-TYPE
+               WHEN 3 MOVE "EARTH" TO MON-TYPE
            END-EVALUATE
+
+           MOVE "A MONSTER" TO MON-NAME
+
+           MOVE MON-TYPE TO MF-TYPE
+           MOVE MON-NAME TO MF-NAME
+           MOVE MON-ATTACK TO MF-ATTACK
+           MOVE MON-SPATTACK TO MF-SPATTACK
+           MOVE MON-DEFENSE TO MF-DEFENSE
+           MOVE MON-SPDEFENSE TO MF-SPDEFENSE.
+
+           MOVE "TYPE: "       TO FILLER-01
+           MOVE " NAME: "      TO FILLER-02
+           MOVE " ATK: "       TO FILLER-03
+           MOVE " SP-ATK: "    TO FILLER-04
+           MOVE " DEF: "       TO FILLER-05
+           MOVE " SP-DEF: "    TO FILLER-06
+           WRITE MONSTER-FILE
+           BEFORE ADVANCING ONE LINE
+           END-WRITE.
 
            MOVE "A NEW MONSTER APPROACHES" TO DISPLAY-TEXT
            MOVE SPACES TO INPUT-LINE
            DISPLAY SCREEN-INFO
            ACCEPT SCREEN-INFO
-
            EXIT.
+
 
        GEN-RNG-NUMBER.
            MOVE ZERO TO TMP-NUM
@@ -248,9 +289,9 @@
 
        REPL-LOOP.
            PERFORM UNTIL PL-HEALTH IS LESS THAN OR EQUAL TO ZERO
-               OR MON-HEALTH(MONSTER-ID) IS LESS THAN OR EQUAL TO ZERO
+               OR MON-HEALTH IS LESS THAN OR EQUAL TO ZERO
 
-               MOVE 1 TO DO-MONSTER-ATTACK
+               MOVE ONE TO DO-MONSTER-ATTACK
                MOVE "Y" TO IS-INPUT-OK
 
                PERFORM FILL-SCREEN-BATTLE
@@ -263,13 +304,13 @@
                        GO TO RUN-AWAY
 
                    WHEN INPUT-ATTACK
-                       MOVE MON-DEFENSE(MONSTER-ID) TO TMP-DEF
+                       MOVE MON-DEFENSE TO TMP-DEF
                        MOVE PL-ATTACK TO TMP-ATK
                        PERFORM CALCULATE-DAMAGE
       *                health - total attack value
                        SUBTRACT TMP-NUM
-                           FROM MON-HEALTH(MONSTER-ID)
-                           GIVING MON-HEALTH(MONSTER-ID)
+                           FROM MON-HEALTH
+                           GIVING MON-HEALTH
                        MOVE TMP-NUM TO TMP-DOT
                        STRING "YOU ATTACKED FOR " DELIMITED BY SIZE
                            TMP-DOT DELIMITED BY SIZE
@@ -278,12 +319,8 @@
                        DISPLAY SCREEN-INFO
                        ACCEPT SCREEN-INFO
 
-      *            WHEN INPUT-SHOW
-      *                DISPLAY "MONSTER HP: " MON-HEALTH(MONSTER-ID)
-      *                MOVE 0 TO DO-MONSTER-ATTACK
-
                    WHEN INPUT-SPFIRE OR INPUT-SPWATER OR INPUT-SPEARTH
-                       MOVE MON-SPDEFENSE(MONSTER-ID) TO TMP-DEF
+                       MOVE MON-SPDEFENSE TO TMP-DEF
                        MOVE PL-SPATTACK TO TMP-ATK
                        PERFORM CALCULATE-DAMAGE
 
@@ -298,10 +335,10 @@
                                MOVE "EARTH" TO TMP-ATK-TYPE
                        END-EVALUATE
 
-                       MOVE MON-TYPE(MONSTER-ID) TO TMP-DEF-TYPE
+                       MOVE MON-TYPE TO TMP-DEF-TYPE
                        PERFORM CALCULATE-SP-DAMAGE
 
-                       SUBTRACT TMP-NUM FROM MON-HEALTH(MONSTER-ID)
+                       SUBTRACT TMP-NUM FROM MON-HEALTH
                        MOVE TMP-NUM TO TMP-DOT
                        STRING "YOU ATTACKED FOR " DELIMITED BY SIZE
                            TMP-DOT DELIMITED BY SIZE
@@ -313,13 +350,14 @@
                    WHEN OTHER
                        MOVE "N" TO IS-INPUT-OK
                END-EVALUATE
+               MOVE SPACES TO INPUT-LINE
 
                IF DO-MONSTER-ATTACK EQUAL ONE
-                   AND MON-HEALTH(MONSTER-ID) IS GREATER THAN ZERO
+                   AND MON-HEALTH IS GREATER THAN ZERO
                    AND INPUT-GOOD
 
                    MOVE PL-DEFENSE TO TMP-DEF
-                   MOVE MON-ATTACK(MONSTER-ID) TO TMP-ATK
+                   MOVE MON-ATTACK TO TMP-ATK
                    PERFORM CALCULATE-DAMAGE
 
                    SUBTRACT TMP-NUM
@@ -393,13 +431,13 @@
 
        FILL-SCREEN-BATTLE.
            MOVE "A MONSTER" TO DM-NAME
-           MOVE MON-TYPE(MONSTER-ID)       TO DM-TYPE
-           MOVE MON-TYPE(MONSTER-ID)       TO DM-TYPE
-           MOVE MON-HEALTH(MONSTER-ID)     TO DM-HEALTH
-           MOVE MON-ATTACK(MONSTER-ID)     TO DM-ATTACK
-           MOVE MON-DEFENSE(MONSTER-ID)    TO DM-DEFENSE
-           MOVE MON-SPATTACK(MONSTER-ID)   TO DM-SPATTACK
-           MOVE MON-SPDEFENSE(MONSTER-ID)  TO DM-SPDEFENSE
+           MOVE MON-TYPE       TO DM-TYPE
+           MOVE MON-TYPE       TO DM-TYPE
+           MOVE MON-HEALTH     TO DM-HEALTH
+           MOVE MON-ATTACK     TO DM-ATTACK
+           MOVE MON-DEFENSE    TO DM-DEFENSE
+           MOVE MON-SPATTACK   TO DM-SPATTACK
+           MOVE MON-SPDEFENSE  TO DM-SPDEFENSE
 
            MOVE SPACES TO INPUT-LINE.
            EXIT.
@@ -407,8 +445,8 @@
        RUN-AWAY.
            MOVE "YOU TRIED TO RUN AWAY, BUT YOU TRIPPED AND DIED."
                TO DISPLAY-TEXT.
-           move spaces to input-line
-           DISPLAY SCREEN-INFO.
-           ACCEPT SCREEN-INFO.
-           STOP RUN.
+           MOVE SPACES TO INPUT-LINE
+           DISPLAY SCREEN-INFO
+           ACCEPT SCREEN-INFO
+           GO TO GAME-OVER.
 

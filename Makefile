@@ -1,8 +1,8 @@
 
 CFLAGS=-x
 
-rpg: main.cbl
+kobold: kobold.cbl
 	cobc $(CFLAGS) -o $@ $^
 
 clean:
-	-rm rpg
+	-rm kobold
