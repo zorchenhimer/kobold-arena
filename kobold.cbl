@@ -217,11 +217,11 @@
                PERFORM GENERATE-MONSTER
                PERFORM REPL-LOOP
 
-               IF PL-HEALTH < 0
+               IF PL-HEALTH IS LESS THAN OR EQUAL TO 0
                    MOVE "YOU DIED" TO DISPLAY-TEXT
                    PERFORM DISPLAY-INFO-SCREEN
                    GO TO GAME-OVER
-               end-if
+               END-IF
            END-PERFORM.
 
        GAME-OVER.
