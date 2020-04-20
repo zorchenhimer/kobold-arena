@@ -2,7 +2,6 @@
        PROGRAM-ID. KOBOLD-ARENA.
 
       * TODO: Get player stats from input.
-      * TODO: Implement SP attacks from the monster.
       * TODO: Heal player by a percentage of their total health between
       *       rounds.
       * TODO: Add some variety to run-away messages (RNG from a list?).
@@ -55,6 +54,9 @@
 
        77 DEFEND-RATIO PIC 9V99 VALUE 0.25.
 
+       77 RNG-MIN-VAL PIC 99.
+       77 RNG-MAX-VAL PIC 99.
+
        01 INPUT-LINE PIC X(100).
                    88 INPUT-ATTACK     VALUE "ATTACK" "A".
                    88 INPUT-EXIT       VALUE "EXIT" "X" "RUN".
@@ -69,9 +71,9 @@
        01 TMP-DEF  PIC s99v99.
        01 TMP-ATK  PIC s99v99.
        01 TMP-UINT PIC 9(4).
-       01 TMP-DOT  PIC 99.99.
+       01 TMP-DOT  PIC 99.
 
-       01 DISPLAY-TEXT PIC X(50) VALUE SPACES.
+       01 DISPLAY-TEXT PIC X(60) VALUE SPACES.
 
        01 TMP-ATK-TYPE PIC X(5).
                    88 TA-WATER     VALUE "WATER".
@@ -105,6 +107,7 @@
            05 MON-DEFENSE      PIC 9(2)    VALUE 0.
            05 MON-SPDEFENSE    PIC 9(2)    VALUE 0.
            05 MON-ATK-RATIO    PIC 99      VALUE 0.
+           05 MON-SP-RATIO     PIC 99      VALUE 0.
 
        01 DISP-MONSTER.
            05 FILLER       PIC X(3) VALUE "ID ".
@@ -177,7 +180,7 @@
 
        01 SCREEN-INFO.
            05 SI-TEXT    BLANK SCREEN      LINE 3 COL 10
-               PIC X(50) FROM DISPLAY-TEXT.
+               PIC X(60) FROM DISPLAY-TEXT.
            05 SI-INPUT                     LINE 6 COL 2
                PIC X(2) USING INPUT-LINE.
 
@@ -230,6 +233,8 @@
 
        GENERATE-MONSTER.
            MOVE 100 TO MON-HEALTH
+           MOVE 70 TO RNG-MAX-VAL
+           MOVE 15 TO RNG-MIN-VAL
 
            PERFORM GEN-RNG-NUMBER
            MOVE TMP-NUM TO MON-ATTACK
@@ -243,15 +248,14 @@
            PERFORM GEN-RNG-NUMBER
            MOVE TMP-NUM TO MON-SPDEFENSE
 
-           PERFORM GEN-RNG-NUMBER
-           MOVE ZERO TO TMP-NUM
-           PERFORM UNTIL TMP-NUM IS LESS THAN OR EQUAL TO 99
-               AND TMP-NUM IS GREATER THAN 65
+           MOVE 99 TO RNG-MAX-VAL
+           MOVE 65 TO RNG-MIN-VAL
 
-               MOVE FUNCTION RANDOM TO TMP-NUM
-               MULTIPLY 100 BY TMP-NUM
-           END-PERFORM.
+           PERFORM GEN-RNG-NUMBER
            MOVE TMP-NUM TO MON-ATK-RATIO
+
+           PERFORM GEN-RNG-NUMBER
+           MOVE TMP-NUM TO MON-SP-RATIO
 
            MOVE FUNCTION RANDOM TO TMP-NUM
            MULTIPLY 3 BY TMP-NUM
@@ -289,8 +293,8 @@
 
        GEN-RNG-NUMBER.
            MOVE ZERO TO TMP-NUM
-           PERFORM UNTIL TMP-NUM IS LESS THAN 70
-               AND TMP-NUM IS GREATER THAN 15
+           PERFORM UNTIL TMP-NUM IS LESS THAN OR EQUAL TO RNG-MAX-VAL
+               AND TMP-NUM IS GREATER THAN RNG-MIN-VAL
 
                MOVE FUNCTION RANDOM TO TMP-NUM
                MULTIPLY 100 BY TMP-NUM
@@ -308,22 +312,12 @@
                MOVE FUNCTION RANDOM TO TMP-NUM
                MULTIPLY 100 BY TMP-NUM
 
-      * MOVE 50 TO TMP-NUM
-
       *        defend
                IF MON-ATK-RATIO IS LESS THAN OR EQUAL TO TMP-NUM
                    MOVE ONE TO MON-DEFEND
                ELSE
                    MOVE ZERO TO MON-DEFEND
                END-IF
-
-               STRING
-                   "RATIO " DELIMITED BY SIZE
-                   MON-ATK-RATIO DELIMITED BY SIZE
-                   " TMP-NUM " DELIMITED BY SIZE
-                   TMP-NUM DELIMITED BY SIZE
-                   INTO DISPLAY-TEXT
-               PERFORM DISPLAY-INFO-SCREEN
 
                PERFORM FILL-SCREEN-BATTLE
                DISPLAY SCREEN-BATTLE
@@ -422,24 +416,54 @@
                    AND MON-HEALTH IS GREATER THAN ZERO
                    AND INPUT-GOOD
 
+                   MOVE FUNCTION RANDOM TO TMP-NUM
+                   MULTIPLY 100 BY TMP-NUM
                    IF MON-DEFEND IS NOT EQUAL TO ONE
-                       MOVE PL-DEFENSE TO TMP-DEF
-                       MOVE MON-ATTACK TO TMP-ATK
-                       PERFORM CALCULATE-DAMAGE
 
-                       IF PL-DEFEND IS EQUAL ONE
-                           MULTIPLY DEFEND-RATIO BY TMP-NUM
+                       IF MON-SP-RATIO IS LESS THAN OR EQUAL TO TMP-NUM
+                           MOVE PL-DEFENSE TO TMP-DEF
+                           MOVE MON-ATTACK TO TMP-ATK
+                           PERFORM CALCULATE-DAMAGE
+                           STRING
+                               "MONSTER ATTACKS FOR " DELIMITED BY SIZE
+                               TMP-DOT DELIMITED BY SIZE
+                               " DAMAGE" DELIMITED BY SIZE
+                               INTO DISPLAY-TEXT
+
+                       ELSE
+                           MOVE PL-SPDEFENSE TO TMP-DEF
+                           MOVE MON-SPATTACK TO TMP-ATK
+                           MOVE SPACES TO TMP-ATK-TYPE
+                           EVALUATE TRUE
+                               WHEN MT-WATER
+                                   MOVE "WATER" TO TMP-ATK-TYPE
+                               WHEN MT-FIRE
+                                   MOVE "FIRE"  TO TMP-ATK-TYPE
+                               WHEN MT-EARTH
+                                   MOVE "EARTH" TO TMP-ATK-TYPE
+                           END-EVALUATE
+
+                           MOVE PL-TYPE TO TMP-DEF-TYPE
+                           PERFORM CALCULATE-SP-DAMAGE
+
+                           IF PL-DEFEND IS EQUAL ONE
+                               MULTIPLY DEFEND-RATIO BY TMP-NUM
+                           END-IF
+                           STRING
+                               "MONSTER ATTACKED WITH "
+                               DELIMITED BY SIZE
+                               MON-TYPE DELIMITED BY SIZE
+                               " MAGIC AND DEALS " DELIMITED BY SIZE
+                               TMP-DOT DELIMITED BY SIZE
+                               " DAMAGE" DELIMITED BY SIZE
+                               INTO DISPLAY-TEXT
                        END-IF
 
                        SUBTRACT TMP-NUM
                            FROM PL-HEALTH
                            GIVING PL-HEALTH
                        MOVE TMP-NUM TO TMP-DOT
-                       STRING "MONSTER ATTACKS FOR " DELIMITED BY SIZE
-                           TMP-DOT DELIMITED BY SIZE
-                          " DAMAGE" DELIMITED BY SIZE INTO DISPLAY-TEXT
-
-                          PERFORM DISPLAY-INFO-SCREEN
+                       PERFORM DISPLAY-INFO-SCREEN
                    END-IF
                END-IF
            END-PERFORM.
