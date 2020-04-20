@@ -3,8 +3,6 @@
 
       * TODO: Get player stats from input.
       * TODO: Implement SP attacks from the monster.
-      * TODO: Implement a "defend" action for both player and monster
-      *       (damage halved?).
       * TODO: Heal player by a percentage of their total health between
       *       rounds.
       * TODO: Add some variety to run-away messages (RNG from a list?).
@@ -52,14 +50,19 @@
        77 IS-INPUT-OK PIC 9.
                    88 INPUT-GOOD VALUE "Y".
                    88 INPUT-BAD  VALUE "N".
+       77 PL-DEFEND PIC 9.
+       77 MON-DEFEND PIC 9.
+
+       77 DEFEND-RATIO PIC 9V99 VALUE 0.25.
 
        01 INPUT-LINE PIC X(100).
                    88 INPUT-ATTACK     VALUE "ATTACK" "A".
-                   88 INPUT-EXIT       VALUE "EXIT" "X".
+                   88 INPUT-EXIT       VALUE "EXIT" "X" "RUN".
                    88 INPUT-SHOW       VALUE "SHOW".
                    88 INPUT-SPWATER    VALUE "SPWATER".
                    88 INPUT-SPFIRE     VALUE "SPFIRE".
                    88 INPUT-SPEARTH    VALUE "SPEARTH".
+                   88 INPUT-DEFEND     VALUE "DEFEND" "D".
 
       * Current monster ID in MONSTERS
        01 TMP-NUM  PIC s99v99.
@@ -101,6 +104,7 @@
            05 MON-SPATTACK     PIC 9(2)    VALUE 0.
            05 MON-DEFENSE      PIC 9(2)    VALUE 0.
            05 MON-SPDEFENSE    PIC 9(2)    VALUE 0.
+           05 MON-ATK-RATIO    PIC 99      VALUE 0.
 
        01 DISP-MONSTER.
            05 FILLER       PIC X(3) VALUE "ID ".
@@ -119,6 +123,7 @@
            05 DM-TYPE      PIC X(5).
            05 FILLER       PIC X(8) VALUE "   NAME ".
            05 DM-NAME      PIC X(20).
+           05 DM-RATIO     PIC 99.
 
        01 WS-CURRENT-DATE-DATA.
            05 WS-CURRENT-DATE.
@@ -157,6 +162,9 @@
            05 VALUE "SP-DEF"               LINE 8 COL 5.
            05 SB-MONSTER-SPDEF             LINE 8 COL 15
                PIC 9(2)    FROM DM-SPDEFENSE.
+           05 VALUE "RATIO"                LINE 9 COL 5.
+           05 SB-MONSTER-RATIO             LINE 9 COL 15
+               PIC 99 FROM DM-RATIO.
 
            05 VALUE "PLAYER"               LINE 10 COL 2.
            05 VALUE "HEALTH"               LINE 11 COL 5.
@@ -196,9 +204,7 @@
            OPEN OUTPUT MONSTERS.
 
            MOVE "ENTERING THE ARENA" TO DISPLAY-TEXT
-           MOVE SPACES TO INPUT-LINE
-           DISPLAY SCREEN-INFO
-           ACCEPT SCREEN-INFO
+           PERFORM DISPLAY-INFO-SCREEN
 
       * generate a monster with stats
       * REPL the attacks
@@ -210,9 +216,7 @@
 
                IF PL-HEALTH < 0
                    MOVE "YOU DIED" TO DISPLAY-TEXT
-                   MOVE SPACES TO INPUT-LINE
-                   DISPLAY SCREEN-INFO
-                   ACCEPT SCREEN-INFO
+                   PERFORM DISPLAY-INFO-SCREEN
                    GO TO GAME-OVER
                end-if
            END-PERFORM.
@@ -221,9 +225,7 @@
            CLOSE MONSTERS.
 
            MOVE "TODO: DISPLAY STATS" TO DISPLAY-TEXT
-           MOVE SPACES TO INPUT-LINE
-           DISPLAY SCREEN-INFO
-           ACCEPT SCREEN-INFO
+           PERFORM DISPLAY-INFO-SCREEN
            STOP RUN.
 
        GENERATE-MONSTER.
@@ -240,6 +242,16 @@
 
            PERFORM GEN-RNG-NUMBER
            MOVE TMP-NUM TO MON-SPDEFENSE
+
+           PERFORM GEN-RNG-NUMBER
+           MOVE ZERO TO TMP-NUM
+           PERFORM UNTIL TMP-NUM IS LESS THAN OR EQUAL TO 99
+               AND TMP-NUM IS GREATER THAN 65
+
+               MOVE FUNCTION RANDOM TO TMP-NUM
+               MULTIPLY 100 BY TMP-NUM
+           END-PERFORM.
+           MOVE TMP-NUM TO MON-ATK-RATIO
 
            MOVE FUNCTION RANDOM TO TMP-NUM
            MULTIPLY 3 BY TMP-NUM
@@ -271,9 +283,7 @@
            END-WRITE.
 
            MOVE "A NEW MONSTER APPROACHES" TO DISPLAY-TEXT
-           MOVE SPACES TO INPUT-LINE
-           DISPLAY SCREEN-INFO
-           ACCEPT SCREEN-INFO
+           PERFORM DISPLAY-INFO-SCREEN
            EXIT.
 
 
@@ -292,7 +302,28 @@
                OR MON-HEALTH IS LESS THAN OR EQUAL TO ZERO
 
                MOVE ONE TO DO-MONSTER-ATTACK
+               MOVE ZERO TO MON-DEFEND
                MOVE "Y" TO IS-INPUT-OK
+
+               MOVE FUNCTION RANDOM TO TMP-NUM
+               MULTIPLY 100 BY TMP-NUM
+
+      * MOVE 50 TO TMP-NUM
+
+      *        defend
+               IF MON-ATK-RATIO IS LESS THAN OR EQUAL TO TMP-NUM
+                   MOVE ONE TO MON-DEFEND
+               ELSE
+                   MOVE ZERO TO MON-DEFEND
+               END-IF
+
+               STRING
+                   "RATIO " DELIMITED BY SIZE
+                   MON-ATK-RATIO DELIMITED BY SIZE
+                   " TMP-NUM " DELIMITED BY SIZE
+                   TMP-NUM DELIMITED BY SIZE
+                   INTO DISPLAY-TEXT
+               PERFORM DISPLAY-INFO-SCREEN
 
                PERFORM FILL-SCREEN-BATTLE
                DISPLAY SCREEN-BATTLE
@@ -312,12 +343,27 @@
                            FROM MON-HEALTH
                            GIVING MON-HEALTH
                        MOVE TMP-NUM TO TMP-DOT
-                       STRING "YOU ATTACKED FOR " DELIMITED BY SIZE
-                           TMP-DOT DELIMITED BY SIZE
-                          " DAMAGE" DELIMITED BY SIZE INTO DISPLAY-TEXT
-                       MOVE SPACES TO INPUT-LINE
-                       DISPLAY SCREEN-INFO
-                       ACCEPT SCREEN-INFO
+                       IF MON-DEFEND IS EQUAL TO ONE
+                           MULTIPLY DEFEND-RATIO BY TMP-NUM
+                           GIVING TMP-DOT
+                           MOVE "MONSTER BRACED FOR ATTACK"
+                           TO DISPLAY-TEXT
+                           PERFORM DISPLAY-INFO-SCREEN
+
+                           STRING
+                               "MONSTER DEFENDED AND YOU ATTACKED FOR "
+                                   DELIMITED BY SIZE
+                               TMP-DOT DELIMITED BY SIZE
+                               " DAMAGE" DELIMITED BY SIZE
+                               INTO DISPLAY-TEXT
+                       ELSE
+                           STRING
+                               "YOU ATTACKED FOR " DELIMITED BY SIZE
+                               TMP-DOT DELIMITED BY SIZE
+                               " DAMAGE" DELIMITED BY SIZE
+                               INTO DISPLAY-TEXT
+                       END-IF
+                       PERFORM DISPLAY-INFO-SCREEN
 
                    WHEN INPUT-SPFIRE OR INPUT-SPWATER OR INPUT-SPEARTH
                        MOVE MON-SPDEFENSE TO TMP-DEF
@@ -338,15 +384,35 @@
                        MOVE MON-TYPE TO TMP-DEF-TYPE
                        PERFORM CALCULATE-SP-DAMAGE
 
+                       IF MON-DEFEND IS EQUAL TO ONE
+                           MULTIPLY DEFEND-RATIO BY TMP-NUM
+                           GIVING TMP-DOT
+                           MOVE "MONSTER BRACED FOR ATTACK"
+                           TO DISPLAY-TEXT
+                           PERFORM DISPLAY-INFO-SCREEN
+
+                           STRING
+                               "MONSTER DEFENDED AND YOU ATTACKED FOR "
+                                   DELIMITED BY SIZE
+                               TMP-DOT DELIMITED BY SIZE
+                               " DAMAGE" DELIMITED BY SIZE
+                               INTO DISPLAY-TEXT
+                       ELSE
+                           STRING
+                               "YOU ATTACKED FOR " DELIMITED BY SIZE
+                               TMP-DOT DELIMITED BY SIZE
+                               " DAMAGE" DELIMITED BY SIZE
+                               INTO DISPLAY-TEXT
+                       END-IF
+
                        SUBTRACT TMP-NUM FROM MON-HEALTH
                        MOVE TMP-NUM TO TMP-DOT
-                       STRING "YOU ATTACKED FOR " DELIMITED BY SIZE
-                           TMP-DOT DELIMITED BY SIZE
-                          " DAMAGE" DELIMITED BY SIZE INTO DISPLAY-TEXT
-                       MOVE SPACES TO INPUT-LINE
-                       DISPLAY SCREEN-INFO
-                       ACCEPT SCREEN-INFO
+                       PERFORM DISPLAY-INFO-SCREEN
 
+                   WHEN INPUT-DEFEND
+                       MOVE "YOU BRACE FOR IMPACT" TO DISPLAY-TEXT
+                       PERFORM DISPLAY-INFO-SCREEN
+                       MOVE ONE TO PL-DEFEND
                    WHEN OTHER
                        MOVE "N" TO IS-INPUT-OK
                END-EVALUATE
@@ -356,20 +422,25 @@
                    AND MON-HEALTH IS GREATER THAN ZERO
                    AND INPUT-GOOD
 
-                   MOVE PL-DEFENSE TO TMP-DEF
-                   MOVE MON-ATTACK TO TMP-ATK
-                   PERFORM CALCULATE-DAMAGE
+                   IF MON-DEFEND IS NOT EQUAL TO ONE
+                       MOVE PL-DEFENSE TO TMP-DEF
+                       MOVE MON-ATTACK TO TMP-ATK
+                       PERFORM CALCULATE-DAMAGE
 
-                   SUBTRACT TMP-NUM
-                       FROM PL-HEALTH
-                       GIVING PL-HEALTH
-                   MOVE TMP-NUM TO TMP-DOT
-                   STRING "MONSTER ATTACKS FOR " DELIMITED BY SIZE
-                       TMP-DOT DELIMITED BY SIZE
-                      " DAMAGE" DELIMITED BY SIZE INTO DISPLAY-TEXT
-                  MOVE SPACES TO INPUT-LINE
-                  DISPLAY SCREEN-INFO
-                  ACCEPT SCREEN-INFO
+                       IF PL-DEFEND IS EQUAL ONE
+                           MULTIPLY DEFEND-RATIO BY TMP-NUM
+                       END-IF
+
+                       SUBTRACT TMP-NUM
+                           FROM PL-HEALTH
+                           GIVING PL-HEALTH
+                       MOVE TMP-NUM TO TMP-DOT
+                       STRING "MONSTER ATTACKS FOR " DELIMITED BY SIZE
+                           TMP-DOT DELIMITED BY SIZE
+                          " DAMAGE" DELIMITED BY SIZE INTO DISPLAY-TEXT
+
+                          PERFORM DISPLAY-INFO-SCREEN
+                   END-IF
                END-IF
            END-PERFORM.
            EXIT.
@@ -438,15 +509,22 @@
            MOVE MON-DEFENSE    TO DM-DEFENSE
            MOVE MON-SPATTACK   TO DM-SPATTACK
            MOVE MON-SPDEFENSE  TO DM-SPDEFENSE
+           MOVE MON-ATK-RATIO  TO DM-RATIO
 
            MOVE SPACES TO INPUT-LINE.
+           EXIT.
+
+       DISPLAY-INFO-SCREEN.
+           MOVE SPACES TO INPUT-LINE
+           DISPLAY SCREEN-INFO
+           ACCEPT SCREEN-INFO
+           MOVE SPACES TO INPUT-LINE
+           MOVE SPACES TO DISPLAY-TEXT
            EXIT.
 
        RUN-AWAY.
            MOVE "YOU TRIED TO RUN AWAY, BUT YOU TRIPPED AND DIED."
                TO DISPLAY-TEXT.
-           MOVE SPACES TO INPUT-LINE
-           DISPLAY SCREEN-INFO
-           ACCEPT SCREEN-INFO
+           PERFORM DISPLAY-INFO-SCREEN
            GO TO GAME-OVER.
 
