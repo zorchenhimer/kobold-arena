@@ -1,8 +1,6 @@
        IDENTIFICATION DIVISION.
        PROGRAM-ID. KOBOLD-ARENA.
 
-      * TODO: Heal player by a percentage of their total health between
-      *       rounds.
       * TODO: Add some variety to run-away messages (RNG from a list?).
       * TODO: Add monster types that have the same base stats. Modify
       *       these stats based on RNG.  Modify attack ratios based on
@@ -327,6 +325,7 @@
                    PERFORM DISPLAY-INFO-SCREEN
                    GO TO GAME-OVER
                END-IF
+               ADD 25 TO PL-HEALTH
            END-PERFORM.
 
        GAME-OVER.
