@@ -781,7 +781,6 @@
                        DIVIDE TMP-NUM BY 2 GIVING
                        TMP-NUM
                    ELSE IF TA-WATER
-                       DISPLAY "WATER VS FIRE"
                        MULTIPLY 2 BY TMP-NUM
                        GIVING TMP-NUM
                    END-IF
