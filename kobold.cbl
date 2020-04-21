@@ -1,8 +1,6 @@
        IDENTIFICATION DIVISION.
        PROGRAM-ID. KOBOLD-ARENA.
 
-      * TODO: Add some variety to run-away messages (RNG from a list?).
-
        ENVIRONMENT DIVISION.
        CONFIGURATION SECTION.
        SOURCE-COMPUTER. IBM-PC.
@@ -849,8 +847,35 @@
            EXIT.
 
        RUN-AWAY.
-           MOVE "YOU TRIED TO RUN AWAY, BUT YOU TRIPPED AND DIED."
-               TO DISPLAY-TEXT.
+           MOVE FUNCTION RANDOM TO TMP-NUM
+           MULTIPLY 4 BY TMP-NUM
+           ADD 1 TO TMP-NUM
+           MOVE TMP-NUM TO TMP-UINT
+           EVALUATE TMP-UINT
+               WHEN 1
+                   MOVE
+                   "YOU TRIED TO RUN AWAY, BUT YOU TRIPPED AND DIED."
+                   TO DISPLAY-TEXT
+               WHEN 2
+                   STRING "AS YOU TURN TO RUN THE " delimited by size
+                   MON-NAME DELIMITED BY SPACES
+                   " ATTACKS YOUR HEAD AND YOU DIE." DELIMITED BY SIZE
+                   INTO DISPLAY-TEXT
+               WHEN 3
+                   STRING
+                   "YOU SUCCESSFULLY RUN FROM BATTLE BUT GET LOST "
+                       DELIMITED BY SIZE
+                   " IN THE WOODS AND STARVE TO DEATH."
+                       DELIMITED BY SIZE
+                   INTO DISPLAY-TEXT
+               when OTHER
+                   STRING
+                   "YOU RUN BUT A ROCK FALLS FROM THE SKY HITTING"
+                       DELIMITED BY SIZE
+                   " YOU ON THE HEAD KILLING YOU INSTANTLY."
+                       DELIMITED BY SIZE
+                   INTO DISPLAY-TEXT
+           END-EVALUATE
            PERFORM DISPLAY-INFO-SCREEN
            GO TO GAME-OVER.
 
