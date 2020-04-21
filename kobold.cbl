@@ -180,6 +180,21 @@
 
            05 VALUE "PLAYER"               LINE 8 COL 2.
            05 VALUE "HEALTH"               LINE 9 COL 5.
+
+           05 VALUE "ATK"                  LINE 11 COL 5.
+           05 SB-PLAYER-ATK                LINE 11 COL 15
+               PIC 9(2)    FROM PL-ATTACK.
+           05 VALUE "DEF"                  LINE 12 COL 5.
+           05 SB-PLAYER-DEF                LINE 12 COL 15
+               PIC 9(2)    FROM PL-DEFENSE.
+
+           05 VALUE "SP-ATK"               LINE 11 COL 25.
+           05 SB-PLAYER-SPATK              LINE 11 COL 35
+               PIC 9(2)    FROM PL-SPATTACK.
+           05 VALUE "SP-DEF"               LINE 12 COL 25.
+           05 SB-PLAYER-SPDEF              LINE 12 COL 35
+               PIC 9(2)    FROM PL-SPDEFENSE.
+
            05 SB-PLAYER-HEALTH             LINE 9 COL 15
                PIC 9(3)    FROM PL-HEALTH.
            05 VALUE "ACTION"               LINE 14 COL 2.
