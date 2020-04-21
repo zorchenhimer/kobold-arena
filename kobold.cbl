@@ -1,7 +1,6 @@
        IDENTIFICATION DIVISION.
        PROGRAM-ID. KOBOLD-ARENA.
 
-      * TODO: Get player stats from input.
       * TODO: Heal player by a percentage of their total health between
       *       rounds.
       * TODO: Add some variety to run-away messages (RNG from a list?).
@@ -54,6 +53,9 @@
        77 RNG-MIN-VAL PIC 99.
        77 RNG-MAX-VAL PIC 99.
 
+      * sum of the stat values for the player
+       77 PLAYER-STAT-TOTAL PIC 999 value 125.
+
        01 INPUT-LINE PIC X(100).
                    88 INPUT-ATTACK     VALUE "ATTACK" "A".
                    88 INPUT-EXIT       VALUE "EXIT" "X" "RUN".
@@ -64,11 +66,13 @@
                    88 INPUT-DEFEND     VALUE "DEFEND" "D".
 
       * Current monster ID in MONSTERS
-       01 TMP-NUM  PIC s99v99.
-       01 TMP-DEF  PIC s99v99.
-       01 TMP-ATK  PIC s99v99.
-       01 TMP-UINT PIC 9(4).
-       01 TMP-DOT  PIC 99.
+       01 TMP-NUM      PIC S99V99.
+       01 TMP-NUM-BIG  PIC S9(5).
+       01 TMP-DEF      PIC S99V99.
+       01 TMP-ATK      PIC S99V99.
+       01 TMP-UINT     PIC 9(4).
+       01 TMP-DOT      PIC 99.
+       01 TMP-DOT3     PIC 9(3).
 
        01 DISPLAY-TEXT PIC X(60) VALUE SPACES.
 
@@ -82,6 +86,8 @@
                    88 TD-EARTH     VALUE "EARTH".
 
        01 DO-MONSTER-ATTACK PIC 9 VALUE 0.
+       01 INPUT-ERROR-01 PIC X(35).
+       01 INPUT-ERROR-02 PIC X(30).
 
        01 THE-PLAYER.
            05 PL-HEALTH    PIC S9(3)   VALUE 100.
@@ -90,6 +96,9 @@
            05 PL-DEFENSE   PIC 9(2)    VALUE 0.
            05 PL-SPDEFENSE PIC 9(2)    VALUE 0.
            05 PL-TYPE      PIC X(5).
+                   88 PL-WATER     VALUE "WATER".
+                   88 PL-FIRE      VALUE "FIRE".
+                   88 PL-EARTH     VALUE "EARTH".
 
        01 CUR-MONSTER.
            05 MON-TYPE     PIC X(5).
@@ -146,8 +155,7 @@
 
        SCREEN SECTION.
        01 SCREEN-BATTLE.
-           05 VALUE "MONSTER" BLANK SCREEN LINE 1 COL 2.
-           05 SB-MONSTER-NAME              LINE 1 COL 10
+           05 SB-MONSTER-NAME BLANK SCREEN LINE 1 COL 2
                PIC X(20)   FROM DM-NAME.
            05 VALUE "TYPE"                 LINE 2 COL 5.
            05 SB-MONSTER-TYPE              LINE 2 COL 15
@@ -163,19 +171,16 @@
            05 SB-MONSTER-DEF               LINE 6 COL 15
                PIC 9(2)    FROM DM-DEFENSE.
 
-           05 VALUE "SP-ATK"               LINE 7 COL 5.
-           05 SB-MONSTER-SPATK             LINE 7 COL 15
+           05 VALUE "SP-ATK"               LINE 5 COL 25.
+           05 SB-MONSTER-SPATK             LINE 5 COL 35
                PIC 9(2)    FROM DM-SPATTACK.
-           05 VALUE "SP-DEF"               LINE 8 COL 5.
-           05 SB-MONSTER-SPDEF             LINE 8 COL 15
+           05 VALUE "SP-DEF"               LINE 6 COL 25.
+           05 SB-MONSTER-SPDEF             LINE 6 COL 35
                PIC 9(2)    FROM DM-SPDEFENSE.
-           05 VALUE "RATIO"                LINE 9 COL 5.
-           05 SB-MONSTER-RATIO             LINE 9 COL 15
-               PIC 99 FROM DM-RATIO.
 
-           05 VALUE "PLAYER"               LINE 10 COL 2.
-           05 VALUE "HEALTH"               LINE 11 COL 5.
-           05 SB-PLAYER-HEALTH             LINE 11 COL 15
+           05 VALUE "PLAYER"               LINE 8 COL 2.
+           05 VALUE "HEALTH"               LINE 9 COL 5.
+           05 SB-PLAYER-HEALTH             LINE 9 COL 15
                PIC 9(3)    FROM PL-HEALTH.
            05 VALUE "ACTION"               LINE 14 COL 2.
            05 SB-INPUT                     LINE 15 COL 5
@@ -213,6 +218,33 @@
            05 SI-INPUT                     LINE 8 COL 2
                PIC X(2) USING INPUT-LINE.
 
+       01 SCREEN-PLAYER-STATS.
+           05 VALUE "INPUT PLAYER STATS. 125 PTS TOTAL."
+                                           LINE 2 COL 2.
+           05 VALUE "ATK"                  LINE 4 COL 5.
+           05 SPS-ATTACK                   LINE 4 COL 15
+               USING PL-ATTACK.
+
+           05 VALUE "DEF"                  LINE 5 COL 5.
+           05 SPS-DEFENSE                  LINE 5 COL 15
+               USING PL-DEFENSE.
+
+           05 VALUE "SPATK"                LINE 6 COL 5.
+           05 SPS-ATTACK                   LINE 6 COL 15
+               USING PL-SPATTACK.
+
+           05 VALUE "SPDEF"                LINE 7 COL 5.
+           05 SPS-SPDEFENSE                LINE 7 COL 15
+               USING PL-SPDEFENSE.
+
+           05 VALUE "TYPE"                 LINE 8 COL 5.
+           05 SPS-TYPE                     LINE 8 COL 15
+               USING PL-TYPE.
+
+           05 SPS-MESSAGE-01               LINE 11 COL 2
+               FROM INPUT-ERROR-01.
+           05 SPS-MESSAGE-02               LINE 8 COL 22
+               FROM INPUT-ERROR-02.
 
        PROCEDURE DIVISION.
 
@@ -228,11 +260,50 @@
       *         ACCEPT PL-DEFENSE
       *     END-PERFORM
 
-           MOVE 50 TO PL-ATTACK
-           MOVE 50 TO PL-DEFENSE
-           MOVE 50 TO PL-SPATTACK
-           MOVE 50 TO PL-SPDEFENSE
-           MOVE "FIRE" TO PL-TYPE
+           MOVE 0 TO PL-ATTACK
+           MOVE 0 TO PL-DEFENSE
+           MOVE 0 TO PL-SPATTACK
+           MOVE 0 TO PL-SPDEFENSE
+           MOVE SPACES TO PL-TYPE
+           MOVE "N" TO IS-INPUT-OK
+
+           MOVE ONE TO TMP-NUM-BIG.
+           PERFORM UNTIL TMP-NUM-BIG EQUALS ZERO AND INPUT-GOOD
+               DISPLAY SCREEN-PLAYER-STATS
+               ACCEPT SCREEN-PLAYER-STATS
+
+               ADD PL-ATTACK PL-DEFENSE PL-SPATTACK PL-SPDEFENSE
+               GIVING TMP-NUM-BIG
+
+               MOVE FUNCTION UPPER-CASE(PL-TYPE) TO PL-TYPE
+
+               MOVE "N" TO IS-INPUT-OK
+               IF PL-WATER OR PL-FIRE OR PL-EARTH
+                   MOVE "Y" TO IS-INPUT-OK
+                   MOVE SPACES TO INPUT-ERROR-02
+               ELSE
+                   MOVE "INVALID TYPE" TO INPUT-ERROR-02
+               END-IF
+
+               SUBTRACT PLAYER-STAT-TOTAL
+                   FROM TMP-NUM-BIG
+               MOVE TMP-NUM-BIG TO TMP-DOT3
+               MOVE SPACES TO INPUT-ERROR-01
+
+               IF TMP-NUM-BIG IS GREATER THAN ZERO
+                   STRING
+                       "TOO MANY POINTS ALLOCATED (+" DELIMITED BY SIZE
+                       TMP-DOT3 DELIMITED BY SIZE
+                       ")" DELIMITED BY SIZE
+                       INTO INPUT-ERROR-01
+               ELSE IF TMP-NUM-BIG IS LESS THAN ZERO
+                   STRING
+                       "TOO FEW POINTS ALLOCATED (-" DELIMITED BY SIZE
+                       TMP-DOT3 DELIMITED BY SIZE
+                       ")" DELIMITED BY SIZE
+                       INTO INPUT-ERROR-01
+               END-IF
+           END-PERFORM.
 
            OPEN OUTPUT MONSTERS.
 
