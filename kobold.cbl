@@ -2,9 +2,6 @@
        PROGRAM-ID. KOBOLD-ARENA.
 
       * TODO: Add some variety to run-away messages (RNG from a list?).
-      * TODO: Add monster types that have the same base stats. Modify
-      *       these stats based on RNG.  Modify attack ratios based on
-      *       type?
 
        ENVIRONMENT DIVISION.
        CONFIGURATION SECTION.
@@ -55,6 +52,23 @@
 
       * sum of the stat values for the player
        77 PLAYER-STAT-TOTAL PIC 999 value 150.
+
+       01 GEN-STAT-RANGES.
+           05 RANGE-ATK-MAX    PIC 99.
+           05 RANGE-ATK-MIN    PIC 99.
+           05 RANGE-SPATK-MAX  PIC 99.
+           05 RANGE-SPATK-MIN  PIC 99.
+
+           05 RANGE-DEF-MAX    PIC 99.
+           05 RANGE-DEF-MIN    PIC 99.
+           05 RANGE-SPDEF-MAX  PIC 99.
+           05 RANGE-SPDEF-MIN  PIC 99.
+
+           05 RANGE-RATIO-ATK-MAX PIC 99.
+           05 RANGE-RATIO-ATK-MIN PIC 99.
+
+           05 RANGE-RATIO-SP-MAX PIC 99.
+           05 RANGE-RATIO-SP-MIN PIC 99.
 
        01 INPUT-LINE PIC X(100).
                    88 INPUT-ATTACK     VALUE "ATTACK" "A".
@@ -342,33 +356,91 @@
            ACCEPT SCREEN-STATS
            STOP RUN.
 
-       GENERATE-MONSTER.
+       GENERATE-MONSTER-KOBOLD.
+           MOVE "KOBOLD" TO MON-NAME
            MOVE 100 TO MON-HEALTH
-           MOVE 70 TO RNG-MAX-VAL
-           MOVE 15 TO RNG-MIN-VAL
+           MOVE "FIRE" TO MON-TYPE
 
-           PERFORM GEN-RNG-NUMBER
-           MOVE TMP-NUM TO MON-ATTACK
+           MOVE 65 TO RANGE-ATK-MAX
+           MOVE 20 TO RANGE-ATK-MIN
+           MOVE 55 TO RANGE-DEF-MAX
+           MOVE 15 TO RANGE-DEF-MIN
 
-           PERFORM GEN-RNG-NUMBER
-           MOVE TMP-NUM TO MON-DEFENSE
+           MOVE 55 TO RANGE-SPATK-MAX
+           MOVE 15 TO RANGE-SPATK-MIN
+           MOVE 55 TO RANGE-SPDEF-MAX
+           MOVE 15 TO RANGE-SPDEF-MIN
 
-           PERFORM GEN-RNG-NUMBER
-           MOVE TMP-NUM TO MON-SPATTACK
+           MOVE 99 TO RANGE-RATIO-ATK-MAX
+           MOVE 75 TO RANGE-RATIO-ATK-MIN
 
-           PERFORM GEN-RNG-NUMBER
-           MOVE TMP-NUM TO MON-SPDEFENSE
+           MOVE 60 TO RANGE-RATIO-SP-MAX
+           MOVE 40 TO RANGE-RATIO-SP-MIN
+           EXIT.
 
-           MOVE 99 TO RNG-MAX-VAL
-           MOVE 65 TO RNG-MIN-VAL
+       GENERATE-MONSTER-ROCK.
+           MOVE "ROCK" TO MON-NAME
+           MOVE 200 TO MON-HEALTH
+           MOVE "EARTH" TO MON-TYPE
 
-           PERFORM GEN-RNG-NUMBER
-           MOVE TMP-NUM TO MON-ATK-RATIO
+           MOVE 0 TO RANGE-ATK-MAX
+           MOVE 0 TO RANGE-ATK-MIN
+           MOVE 0 TO RANGE-SPATK-MAX
+           MOVE 0 TO RANGE-SPATK-MIN
 
-           PERFORM GEN-RNG-NUMBER
-           MOVE TMP-NUM TO MON-SP-RATIO
+           MOVE 80 TO RANGE-DEF-MAX
+           MOVE 99 TO RANGE-DEF-MIN
+           MOVE 80 TO RANGE-SPDEF-MAX
+           MOVE 99 TO RANGE-SPDEF-MIN
 
-           ADD ONE TO ST-MONSTERS
+           MOVE 0 TO RANGE-RATIO-ATK-MAX
+           MOVE 0 TO RANGE-RATIO-ATK-MIN
+
+           MOVE 0 TO RANGE-RATIO-SP-MAX
+           MOVE 0 TO RANGE-RATIO-SP-MIN
+           EXIT.
+
+       GENERATE-MONSTER-SLIME.
+           MOVE "SLIME" TO MON-NAME
+           MOVE 75 TO MON-HEALTH
+           MOVE "WATER" TO MON-TYPE
+
+           MOVE 40 TO RANGE-ATK-MAX
+           MOVE 10 TO RANGE-ATK-MIN
+           MOVE 40 TO RANGE-DEF-MAX
+           MOVE 10 TO RANGE-DEF-MIN
+
+           MOVE 70 TO RANGE-SPATK-MAX
+           MOVE 30 TO RANGE-SPATK-MIN
+           MOVE 70 TO RANGE-SPDEF-MAX
+           MOVE 30 TO RANGE-SPDEF-MIN
+
+           MOVE 99 TO RANGE-RATIO-ATK-MAX
+           MOVE 80 TO RANGE-RATIO-ATK-MIN
+
+           MOVE 20 TO RANGE-RATIO-SP-MAX
+           MOVE 00 TO RANGE-RATIO-SP-MIN
+           EXIT.
+
+       GENERATE-MONSTER-SNAKE.
+           MOVE "SNAKE" TO MON-NAME
+           MOVE 100 TO MON-HEALTH
+
+           MOVE 65 TO RANGE-ATK-MAX
+           MOVE 20 TO RANGE-ATK-MIN
+           MOVE 55 TO RANGE-DEF-MAX
+           MOVE 15 TO RANGE-DEF-MIN
+
+           MOVE 55 TO RANGE-SPATK-MAX
+           MOVE 15 TO RANGE-SPATK-MIN
+           MOVE 55 TO RANGE-SPDEF-MAX
+           MOVE 15 TO RANGE-SPDEF-MIN
+
+           MOVE 99 TO RANGE-RATIO-ATK-MAX
+           MOVE 75 TO RANGE-RATIO-ATK-MIN
+
+           MOVE 60 TO RANGE-RATIO-SP-MAX
+           MOVE 40 TO RANGE-RATIO-SP-MIN
 
            MOVE FUNCTION RANDOM TO TMP-NUM
            MULTIPLY 3 BY TMP-NUM
@@ -379,8 +451,59 @@
                WHEN 2 MOVE "FIRE"  TO MON-TYPE
                WHEN 3 MOVE "EARTH" TO MON-TYPE
            END-EVALUATE
+           EXIT.
 
-           MOVE "A MONSTER" TO MON-NAME
+       GENERATE-MONSTER.
+           MOVE ZEROES TO GEN-STAT-RANGES.
+
+           MOVE FUNCTION RANDOM TO TMP-NUM
+           MULTIPLY 10 BY TMP-NUM GIVING TMP-DOT
+
+           EVALUATE true
+               WHEN TMP-NUM IS EQUAL TO ZERO
+                   OR TMP-NUM IS EQUAL TO ONE
+                   OR TMP-NUM IS EQUAL TO 4
+                   PERFORM GENERATE-MONSTER-SLIME
+               WHEN TMP-NUM IS EQUAL TO 2
+                   PERFORM GENERATE-MONSTER-ROCK
+               WHEN TMP-NUM IS EQUAL TO 5
+                   OR TMP-NUM IS EQUAL TO 6
+                   PERFORM GENERATE-MONSTER-SNAKE
+               WHEN OTHER
+                   PERFORM GENERATE-MONSTER-KOBOLD
+           END-EVALUATE.
+
+           MOVE RANGE-ATK-MAX TO RNG-MAX-VAL
+           MOVE RANGE-ATK-MIN TO RNG-MIN-VAL
+           PERFORM GEN-RNG-NUMBER
+           MOVE TMP-NUM TO MON-ATTACK
+
+           MOVE RANGE-DEF-MAX TO RNG-MAX-VAL
+           MOVE RANGE-DEF-MIN TO RNG-MIN-VAL
+           PERFORM GEN-RNG-NUMBER
+           MOVE TMP-NUM TO MON-DEFENSE
+
+           MOVE RANGE-SPATK-MAX TO RNG-MAX-VAL
+           MOVE RANGE-SPATK-MIN TO RNG-MIN-VAL
+           PERFORM GEN-RNG-NUMBER
+           MOVE TMP-NUM TO MON-SPATTACK
+
+           MOVE RANGE-SPDEF-MAX TO RNG-MAX-VAL
+           MOVE RANGE-SPDEF-MIN TO RNG-MIN-VAL
+           PERFORM GEN-RNG-NUMBER
+           MOVE TMP-NUM TO MON-SPDEFENSE
+
+           MOVE RANGE-RATIO-ATK-MAX TO RNG-MAX-VAL
+           MOVE RANGE-RATIO-ATK-MIN TO RNG-MIN-VAL
+           PERFORM GEN-RNG-NUMBER
+           MOVE TMP-NUM TO MON-ATK-RATIO
+
+           MOVE RANGE-RATIO-SP-MAX TO RNG-MAX-VAL
+           MOVE RANGE-RATIO-SP-MIN TO RNG-MIN-VAL
+           PERFORM GEN-RNG-NUMBER
+           MOVE TMP-NUM TO MON-SP-RATIO
+
+           ADD ONE TO ST-MONSTERS
 
            MOVE MON-TYPE TO MF-TYPE
            MOVE MON-NAME TO MF-NAME
@@ -407,7 +530,7 @@
        GEN-RNG-NUMBER.
            MOVE ZERO TO TMP-NUM
            PERFORM UNTIL TMP-NUM IS LESS THAN OR EQUAL TO RNG-MAX-VAL
-               AND TMP-NUM IS GREATER THAN RNG-MIN-VAL
+               AND TMP-NUM IS GREATER THAN OR EQUAL TO RNG-MIN-VAL
 
                MOVE FUNCTION RANDOM TO TMP-NUM
                MULTIPLY 100 BY TMP-NUM
@@ -457,15 +580,20 @@
                        IF MON-DEFEND IS EQUAL TO ONE
                            MULTIPLY DEFEND-RATIO BY TMP-NUM
                            GIVING TMP-NUM
-                           MOVE "MONSTER BRACED FOR ATTACK"
-                           TO DISPLAY-TEXT
+                           STRING
+                               "THE " DELIMITED BY SIZE
+                               MON-NAME DELIMITED BY SPACES
+                               " BRACED FOR ATTACK" delimited by size
+                           INTO DISPLAY-TEXT
                            PERFORM DISPLAY-INFO-SCREEN
 
                            ADD TMP-NUM TO ST-DMG-DEALT
                            MOVE TMP-NUM TO TMP-DOT
 
                            STRING
-                               "MONSTER DEFENDED AND YOU ATTACKED FOR "
+                               "THE " DELIMITED BY SIZE
+                               MON-NAME DELIMITED BY SPACES
+                               " DEFENDED AND YOU ATTACKED FOR "
                                    DELIMITED BY SIZE
                                TMP-DOT DELIMITED BY SIZE
                                " DAMAGE" DELIMITED BY SIZE
@@ -506,15 +634,20 @@
                        IF MON-DEFEND IS EQUAL TO ONE
                            MULTIPLY DEFEND-RATIO BY TMP-NUM
                            GIVING TMP-NUM
-                           MOVE "MONSTER BRACED FOR ATTACK"
-                           TO DISPLAY-TEXT
+                           STRING
+                               "THE " DELIMITED BY SIZE
+                               MON-NAME DELIMITED BY SPACES
+                               " BRACED FOR ATTACK" DELIMITED BY SIZE
+                               INTO DISPLAY-TEXT
                            PERFORM DISPLAY-INFO-SCREEN
 
                            ADD TMP-NUM TO ST-DMG-DEALT
                            MOVE TMP-NUM TO TMP-DOT
 
                            STRING
-                               "MONSTER DEFENDED AND YOU ATTACKED FOR "
+                               "THE " delimited by size
+                               MON-NAME DELIMITED BY SPACES
+                               " DEFENDED AND YOU ATTACKED FOR "
                                    DELIMITED BY SIZE
                                TMP-DOT DELIMITED BY SIZE
                                " DAMAGE" DELIMITED BY SIZE
@@ -558,7 +691,8 @@
                            ADD TMP-NUM TO ST-DMG-RECEIVED
                            MOVE TMP-NUM TO TMP-DOT
                            STRING
-                               "MONSTER ATTACKS FOR " DELIMITED BY SIZE
+                               MON-NAME DELIMITED BY SPACES
+                               " ATTACKS FOR " DELIMITED BY SIZE
                                TMP-DOT DELIMITED BY SIZE
                                " DAMAGE" DELIMITED BY SIZE
                                INTO DISPLAY-TEXT
@@ -587,9 +721,11 @@
                            MOVE TMP-NUM TO TMP-DOT
 
                            STRING
-                               "MONSTER ATTACKED WITH "
+                               "THE " DELIMITED BY SIZE
+                               MON-NAME DELIMITED BY SPACES
+                               " ATTACKED WITH "
                                DELIMITED BY SIZE
-                               MON-TYPE DELIMITED BY SIZE
+                               MON-TYPE DELIMITED BY SPACES
                                " MAGIC AND DEALS " DELIMITED BY SIZE
                                TMP-DOT DELIMITED BY SIZE
                                " DAMAGE" DELIMITED BY SIZE
@@ -662,7 +798,7 @@
            EXIT.
 
        FILL-SCREEN-BATTLE.
-           MOVE "A MONSTER" TO DM-NAME
+           MOVE MON-NAME       TO DM-NAME
            MOVE MON-TYPE       TO DM-TYPE
            MOVE MON-TYPE       TO DM-TYPE
            MOVE MON-HEALTH     TO DM-HEALTH
