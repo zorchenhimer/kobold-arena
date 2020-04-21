@@ -54,7 +54,7 @@
        77 UPPER-TEXT PIC X(30).
 
       * sum of the stat values for the player
-       77 PLAYER-STAT-TOTAL PIC 999 value 125.
+       77 PLAYER-STAT-TOTAL PIC 999 value 150.
 
        01 INPUT-LINE PIC X(100).
                    88 INPUT-ATTACK     VALUE "ATTACK" "A".
