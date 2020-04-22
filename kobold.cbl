@@ -854,6 +854,9 @@
            EXIT.
 
        RUN-AWAY.
+           IF MON-NAME EQUALS SPACES
+               MOVE "???" TO MON-NAME
+           END-IF
            MOVE FUNCTION RANDOM TO TMP-NUM
            MULTIPLY 4 BY TMP-NUM
            ADD 1 TO TMP-NUM
@@ -872,9 +875,10 @@
                    STRING
                    "YOU SUCCESSFULLY RUN FROM BATTLE BUT GET LOST "
                        DELIMITED BY SIZE
-                   " IN THE WOODS AND STARVE TO DEATH."
+                       " IN THE WOODS"
                        DELIMITED BY SIZE
                    INTO DISPLAY-TEXT
+                   MOVE "AND STARVE TO DEATH." TO DISPLAY-TEXT2
                when OTHER
                    STRING
                    "YOU RUN BUT A ROCK FALLS FROM THE SKY HITTING"
