@@ -1,8 +1,11 @@
+.PHONY: clean
 
-CFLAGS=-x
+ifeq ($(OS),Windows_NT)
+EXT=.exe
+endif
 
-kobold: kobold.cbl
-	cobc $(CFLAGS) -o $@ $^
+kobold$(EXT): kobold.cbl
+	cobc -x -o $@ $<
 
 clean:
-	-rm kobold
+	-rm kobold kobold.exe
