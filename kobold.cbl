@@ -86,7 +86,8 @@
        01 TMP-DOT      PIC 99.
        01 TMP-DOT3     PIC 9(3).
 
-       01 DISPLAY-TEXT PIC X(60) VALUE SPACES.
+       01 DISPLAY-TEXT  PIC X(60) VALUE SPACES.
+       01 DISPLAY-TEXT2 PIC X(60) VALUE SPACES.
 
        01 TMP-ATK-TYPE PIC X(5).
                    88 TA-WATER     VALUE "WATER".
@@ -216,7 +217,9 @@
 
        01 SCREEN-INFO.
            05 SI-TEXT    BLANK SCREEN      LINE 3 COL 10
-               PIC X(60) FROM DISPLAY-TEXT.
+               FROM DISPLAY-TEXT.
+           05 SI-TEXT2                     LINE 4 COL 10
+               FROM DISPLAY-TEXT2.
            05 SI-INPUT                     LINE 6 COL 2
                PIC X(2) USING INPUT-LINE.
 
@@ -296,11 +299,14 @@
                MOVE PL-TYPE TO UPPER-TEXT
                PERFORM TO-UPPER
                MOVE UPPER-TEXT TO PL-TYPE
+               MOVE PL-TYPE TO INPUT-LINE
 
                MOVE "N" TO IS-INPUT-OK
                IF PL-WATER OR PL-FIRE OR PL-EARTH
                    MOVE "Y" TO IS-INPUT-OK
                    MOVE SPACES TO INPUT-ERROR-02
+               ELSE IF INPUT-EXIT
+                   GO TO RUN-AWAY
                ELSE
                    MOVE "INVALID TYPE" TO INPUT-ERROR-02
                END-IF
@@ -814,6 +820,7 @@
            ACCEPT SCREEN-INFO
            MOVE SPACES TO INPUT-LINE
            MOVE SPACES TO DISPLAY-TEXT
+           MOVE SPACES TO DISPLAY-TEXT2
            EXIT.
 
       * FUNCTION UPPER-CASE(UPPER-TEXT) IS FOR THE WEAK
@@ -872,9 +879,9 @@
                    STRING
                    "YOU RUN BUT A ROCK FALLS FROM THE SKY HITTING"
                        DELIMITED BY SIZE
-                   " YOU ON THE HEAD KILLING YOU INSTANTLY."
-                       DELIMITED BY SIZE
+                       " YOU ON THE"
                    INTO DISPLAY-TEXT
+                   MOVE "HEAD KILLING YOU INSTANTLY." TO DISPLAY-TEXT2
            END-EVALUATE
            PERFORM DISPLAY-INFO-SCREEN
            GO TO GAME-OVER.
