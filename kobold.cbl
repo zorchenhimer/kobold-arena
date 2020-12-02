@@ -33,7 +33,7 @@
 
        WORKING-STORAGE SECTION.
 
-       77 FS PIC X(10).
+       77 FS PIC X(2).
        77 ONE PIC 9 VALUE 1.
        77 IS-INPUT-OK PIC 9.
                    88 INPUT-GOOD VALUE "Y".
